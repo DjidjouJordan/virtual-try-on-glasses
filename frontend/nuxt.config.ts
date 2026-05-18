@@ -21,11 +21,27 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
 
+  // Désactive temporairement le téléchargement distant si la connexion est instable
+  nitro: {
+    storage: {
+      data: { driver: 'memory' }
+    }
+  },
+
   eslint: {
     config: {
       stylistic: {
         commaDangle: 'never',
         braceStyle: '1tbs'
+      }
+    }
+  },
+
+  fonts: {
+    defaults: {
+      fallbacks: {
+        'serif': [],
+        'sans-serif': ['Arial']
       }
     }
   },
