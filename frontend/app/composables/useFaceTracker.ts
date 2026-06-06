@@ -1,58 +1,72 @@
 /**
  * COMPOSABLE : useFaceTracker
- * Rôle : Gère le cycle de vie de MediaPipe Face Landmarker (IA).
+ * Projet : DPGlassess (Virtual Try-On)
+ * Rôle : Pilote l'IA MediaPipe Face Landmarker et traite les flux vidéo.
  */
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 
 export const useFaceTracker = () => {
-  // shallowRef évite que Vue ne surveille l'intérieur de MediaPipe (gain de performance)
-  // Contrairement à ref(), il n'observe pas l'intérieur de l'objet (trop lourd pour l'IA).
+  // shallowRef : Optimisation cruciale. Empêche Vue de rendre réactif l'objet complexe
+  // de MediaPipe, ce qui économiserait énormément de CPU sur mobile.
   const faceLandmarker = shallowRef<FaceLandmarker | null>(null)
-  // États réactifs pour l'UI
+
   const isLoaded = ref(false)
   const lastVideoTime = ref(-1)
 
   /**
-   * Initialise le moteur de détection faciale.
-   * Charge les binaires WASM localement pour le mode PWA/Offline.
+   * Initialise le détecteur avec les fichiers WebAssembly (WASM).
+   * Note : Les fichiers doivent être présents dans le dossier /public/wasm/
    */
   const initTracker = async () => {
-    // FilesetResolver va chercher les fichiers.wasm dans /public/wasm
+    // FilesetResolver prépare l'environnement WASM pour l'exécution locale (Offline-ready)
     const filesetResolver = await FilesetResolver.forVisionTasks('/wasm')
 
     faceLandmarker.value = await FaceLandmarker.createFromOptions(filesetResolver, {
       baseOptions: {
         modelAssetPath: '/models/face_landmarker.task',
-        delegate: 'GPU' // Force l'utilisation de la puce graphique pour viser les 30 FPS
+        delegate: 'GPU' // Utilise l'accélération matérielle du smartphone
       },
-      outputFaceBlendshapes: true, // Requis pour les expressions faciales futures
-      outputFacialTransformationMatrixes: true, // Requis pour coller les lunettes 3D
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true,
       runningMode: 'VIDEO',
-      numFaces: 1 // Limité à 1 visage pour économiser les ressources mobiles
+      numFaces: 1 // On limite à un seul visage pour maximiser les FPS
     })
 
     isLoaded.value = true
-    console.log('IA MediaPipe : Prête')
   }
 
   /**
-   * Analyse une frame vidéo pour détecter les points du visage.
-   * @param videoElement L'élément HTML <video> source
-   * @returns Les résultats de détection (landmarks, matrices) ou null
+   * Analyse une frame vidéo et calcule les métriques de présence.
+   * @param videoElement L'élément <video> actif
    */
   const detectFace = (videoElement: HTMLVideoElement) => {
-    // Gardes de sécurité techniques
-    if (!faceLandmarker.value) return null
-
-    // Vérifier que la vidéo a des dimensions valides
-    if (videoElement.readyState < 2) return null // Vidéo pas encore chargée
-    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return null // Dimensions non valides
-    // Optimisation : Ne pas traiter la même frame deux fois
+    // Sécurité : Vérification de l'état de la vidéo et du tracker
+    if (!faceLandmarker.value || videoElement.readyState < 2) return null
     if (videoElement.currentTime === lastVideoTime.value) return null
 
     lastVideoTime.value = videoElement.currentTime
-    // Appel du moteur IA (Inférence locale WASM)
-    return faceLandmarker.value.detectForVideo(videoElement, performance.now())
+
+    // Exécution de l'inférence IA
+    const results = faceLandmarker.value.detectForVideo(videoElement, performance.now())
+
+    // --- LOGIQUE DE DISTANCE (Tâche Wills) ---
+    let isTooFar = false
+    if (results.faceLandmarks && results.faceLandmarks[0]) {
+      // Calcul de la distance entre le coin interne de l'œil gauche (33) et droit (263)
+      // Les coordonnées sont normalisées entre 0 et 1.
+      const landmarkLeftEye = results.faceLandmarks[0][33]
+      const landmarkRightEye = results.faceLandmarks[0][263]
+
+      const eyeDistance = Math.abs(landmarkLeftEye.x - landmarkRightEye.x)
+
+      // Si la distance entre les yeux est < 25% de la largeur de l'image, l'utilisateur est trop loin
+      isTooFar = eyeDistance < 0.25
+    }
+
+    return {
+      ...results,
+      isTooFar
+    }
   }
 
   return { initTracker, detectFace, isLoaded }
