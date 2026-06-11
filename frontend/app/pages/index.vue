@@ -1,76 +1,96 @@
 <template>
   <div>
     <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
+      title="DPGlasses"
+      title-class="text-5xl sm:text-6xl"
+      description="Essayez vos lunettes en réalité augmentée, directement dans votre navigateur. Aucune installation, aucune donnée envoyée au serveur. Une expérience immersive et confidentielle."
+      :links="[
+        {
+          label: 'Essayer maintenant',
+          to: '/try-on',
+          trailingIcon: 'i-lucide-camera',
+          size: 'xl',
+          color: 'primary'
+        },
+        {
+          label: 'Découvrir comment ça marche',
+          to: '#how-it-works',
+          icon: 'i-lucide-info',
+          size: 'xl',
+          color: 'neutral',
+          variant: 'subtle'
+        }
+      ]"
     />
 
     <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
+      id="how-it-works"
+      title="Comment ça fonctionne ?"
+      description="Une technologie de pointe, entièrement locale et respectueuse de votre vie privée."
+      :features="[
+        {
+          icon: 'i-lucide-scan-face',
+          title: 'Détection faciale en temps réel',
+          description: 'MediaPipe analyse 468 points de repère sur votre visage pour un suivi ultra-précis, même sur mobile.'
+        },
+        {
+          icon: 'i-lucide-glasses',
+          title: 'Rendu 3D réaliste',
+          description: 'Les lunettes sont affichées avec Three.js, supportant l’occlusion, les reflets et les matériaux PBR.'
+        },
+        {
+          icon: 'i-lucide-shield',
+          title: '100% confidentiel',
+          description: 'L’inférence IA se fait sur votre appareil (WebAssembly). Aucune image ni donnée biométrique ne quitte votre navigateur.'
+        },
+        {
+          icon: 'i-lucide-wifi-off',
+          title: 'Fonctionne hors-ligne',
+          description: 'Installez DPGlasses comme une PWA et essayez vos montures favorites même sans connexion internet.'
+        },
+        {
+          icon: 'i-lucide-camera',
+          title: 'Capture & Partage',
+          description: 'Prenez un selfie avec les lunettes virtuelles et partagez-le directement sur vos réseaux.'
+        },
+        {
+          icon: 'i-lucide-shopping-bag',
+          title: 'Catalogue dynamique',
+          description: 'Changez de modèle en un clic, ajoutez vos favoris et passez commande en ligne.'
+        }
+      ]"
     />
 
     <UPageSection>
       <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
+        title="Prêt à changer de look ?"
+        description="Aucune installation, aucune inscription. Activez votre caméra et essayez nos lunettes virtuellement."
         variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
+        :links="[
+          {
+            label: 'Lancer l’essayage',
+            to: '/try-on',
+            trailingIcon: 'i-lucide-arrow-right',
+            color: 'primary'
+          },
+          {
+            label: 'Voir le code source',
+            to: 'https://github.com/ton-repo/dpglasses',
+            target: '_blank',
+            icon: 'i-simple-icons-github',
+            color: 'neutral',
+            variant: 'outline'
+          }
+        ]"
       />
+    </UPageSection>
+
+    <UPageSection>
+      <div class="text-center text-muted text-sm">
+        <p>
+          Construit avec ❤️ au Cameroun — Technologies : Nuxt 4, Three.js, MediaPipe, Laravel 13, PostgreSQL.
+        </p>
+      </div>
     </UPageSection>
   </div>
 </template>

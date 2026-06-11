@@ -11,8 +11,8 @@ useHead({
   }
 })
 
-const title = 'Nuxt Starter Template'
-const description = 'A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.'
+const title = 'DPGlasses'
+const description = 'The intuitive VTO application made in Cameroon'
 
 useSeoMeta({
   title,
@@ -29,17 +29,16 @@ useSeoMeta({
     <UHeader>
       <template #left>
         <NuxtLink to="/">
-          <AppLogo class="w-auto h-6 shrink-0" />
+          <span class="font-bold text-xl">DPGlasses</span>
         </NuxtLink>
 
-        <TemplateMenu />
+        <UTabs :items="[{ label: 'Accueil', to: '/' }, { label: 'Essayer', to: '/try-on' }]" />
       </template>
 
       <template #right>
         <UColorModeButton />
-
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
+          to="https://github.com/ton-repo/dpglasses"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"
@@ -53,18 +52,18 @@ useSeoMeta({
       <NuxtPage />
     </UMain>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
+    <USeparator icon="i-lucide-glasses" />
 
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
+          DPGlasses • Essayage virtuel de lunettes en RA • © {{ new Date().getFullYear() }}
         </p>
       </template>
 
       <template #right>
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
+          to="https://github.com/ton-repo/dpglasses"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"

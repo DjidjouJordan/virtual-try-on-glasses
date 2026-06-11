@@ -4,6 +4,7 @@
  * Rôle : Pilote l'IA MediaPipe Face Landmarker et traite les flux vidéo.
  */
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
+import { ref, shallowRef } from 'vue'
 
 export const useFaceTracker = () => {
   // shallowRef : Optimisation cruciale. Empêche Vue de rendre réactif l'objet complexe
@@ -57,7 +58,10 @@ export const useFaceTracker = () => {
       const landmarkLeftEye = results.faceLandmarks[0][33]
       const landmarkRightEye = results.faceLandmarks[0][263]
 
-      const eyeDistance = Math.abs(landmarkLeftEye.x - landmarkRightEye.x)
+      const eyeDistance = Math.hypot(
+        landmarkLeftEye.x - landmarkRightEye.x,
+        landmarkLeftEye.y - landmarkRightEye.y
+      )
 
       // Si la distance entre les yeux est < 25% de la largeur de l'image, l'utilisateur est trop loin
       isTooFar = eyeDistance < 0.25
