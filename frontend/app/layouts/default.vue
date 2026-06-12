@@ -4,13 +4,13 @@ const { cartCount } = useShop()
 
 const navItems = [
   { label: 'Catalogue', shortLabel: 'CATALOG', icon: 'i-lucide-layout-grid', to: '/catalog' },
-  { label: 'AR Mirror', shortLabel: 'AR MIRROR', icon: 'i-lucide-scan-face', to: '/try-on' },
-  { label: 'Profil', shortLabel: 'PROFILE', icon: 'i-lucide-user-round', to: '/profile' },
+  { label: 'AR Mirror', shortLabel: 'AR MIRROR', icon: 'i-lucide-scan-face', to: '/debug' },
+  { label: 'Profil', shortLabel: 'PROFILE', icon: 'i-lucide-user-round', to: '/profile' }
 ]
 
 function isActive(item: { to: string }) {
   if (item.to === '/catalog') return route.path === '/catalog' || route.path.startsWith('/glasses')
-  if (item.to === '/try-on') return route.path === '/try-on'
+  if (item.to === '/debug') return route.path === '/debug'
   if (item.to === '/profile') {
     return route.path === '/profile' || route.path === '/cart' || route.path === '/checkout'
   }
