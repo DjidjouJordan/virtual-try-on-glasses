@@ -101,7 +101,8 @@ const filteredGlasses = computed(() => {
           </div>
           <!-- Desktop CTA in hero -->
           <NuxtLink
-            to="/try-on"
+            to="/debug
+            "
             class="hidden md:flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3.5 rounded-2xl mt-0 shadow-lg shadow-orange-500/30 transition-all shrink-0"
           >
             <UIcon name="i-lucide-scan-face" class="w-5 h-5" />
@@ -179,7 +180,7 @@ const filteredGlasses = computed(() => {
     <!-- Mobile FAB -->
     <div class="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
       <NuxtLink
-        to="/try-on"
+        to="/debug"
         class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-5 py-3.5 rounded-full shadow-xl shadow-orange-500/40 transition-all"
       >
         <UIcon name="i-lucide-scan-face" class="w-4 h-4" />

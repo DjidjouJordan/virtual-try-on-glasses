@@ -17,7 +17,7 @@ const recommendations = mockGlasses.slice(0, 3)
           <span class="hidden md:block text-sm font-bold text-gray-700">Mon Profil</span>
         </div>
         <button class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-          <UIcon name="i-lucide-settings" class="w-4 h-4 text-gray-500" />
+          <UIcon name="i-lucide-settings" class="cursor-pointer w-4 h-4 text-gray-500" />
         </button>
       </div>
     </div>
@@ -37,7 +37,7 @@ const recommendations = mockGlasses.slice(0, 3)
                 <p class="text-blue-200 text-xs mt-0.5">Connectez-vous pour plus</p>
               </div>
             </div>
-            <button class="w-full bg-white text-blue-700 font-bold py-2.5 rounded-2xl text-sm hover:bg-blue-50 transition-colors">
+            <button class="cursor-pointer w-full bg-white text-blue-700 font-bold py-2.5 rounded-2xl text-sm hover:bg-blue-50 transition-colors">
               Se connecter / S'inscrire
             </button>
           </div>

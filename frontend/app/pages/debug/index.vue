@@ -5,7 +5,7 @@
 
       <canvas ref="arCanvas" class="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none" />
 
-      <FaceFeedbackOverlay v-if="isLoaded" :is-tracking="isTracking" />
+      <!-- <FaceFeedbackOverlay v-if="isLoaded" :is-tracking="isTracking" /> -->
 
       <div v-if="!isLoaded" class="absolute inset-0 bg-black z-50 flex items-center justify-center">
         <p class="text-white text-xs tracking-widest uppercase">

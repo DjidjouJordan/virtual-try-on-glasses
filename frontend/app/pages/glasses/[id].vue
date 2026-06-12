@@ -8,7 +8,7 @@ const { getById, addToCart, formatPrice } = useShop()
 const glasses = computed(() => getById(Number(route.params.id)))
 const activeView = ref<'PROFIL' | 'DETAIL' | 'ÉTUI'>('PROFIL')
 
-function goTryOn() { router.push('/try-on') }
+function goTryOn() { router.push('/debug') }
 function handleAddToCart() {
   if (glasses.value) { addToCart(glasses.value); router.push('/cart') }
 }

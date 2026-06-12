@@ -4,7 +4,7 @@ definePageMeta({ layout: false })
 const slides = [
   {
     tag: 'INNOVATION',
-    title: 'Essayage RA',
+    title: 'Essayage en Réalité Augmentée',
     description: 'Visualisez instantanément vos futures montures avec notre technologie de Réalité Augmentée clinique.',
     bgFrom: '#1e3a5f',
     bgTo: '#0f2240',
@@ -107,6 +107,12 @@ onUnmounted(() => clearInterval(timer))
       <div class="hidden md:block w-full">
         <h2 class="text-3xl font-extrabold text-gray-900">Bienvenue</h2>
         <p class="text-gray-500 mt-1">Commencez votre expérience d'essayage virtuel</p>
+        <div class="flex flex-col gap-5 mt-2">
+          <p>✓ Suivi facial IA</p>
+          <p>✓ Modèles 3D réalistes </p>
+          <p>✓ Compatible mobile </p>
+          <p>✓ Réalité augmentée Web </p>
+        </div>
       </div>
 
       <!-- Mobile slide card -->
