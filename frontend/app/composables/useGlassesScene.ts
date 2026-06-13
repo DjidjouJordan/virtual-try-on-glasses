@@ -19,9 +19,9 @@ export const useGlassesScene = () => {
   const faceOccluder = shallowRef<any>(null)
 
   const calibration = reactive({
-    scale: 0.9,
-    positionY: 3.7,
-    positionZ: 0.1,
+    scale: 1.0,
+    positionY: 1.7,
+    positionZ: 0.0,
     rotationX: 0,
     rotationY: 4.6,
     rotationZ: 0
@@ -99,6 +99,9 @@ export const useGlassesScene = () => {
       const center = box.getCenter(new THREE.Vector3())
       model.position.sub(center)
 
+      // Glasses must render after the face occluder so depth-testing works correctly
+      model.traverse((child: any) => { child.renderOrder = 1 })
+
       const pivot = new THREE.Group()
       pivot.add(model)
 
@@ -130,12 +133,12 @@ export const useGlassesScene = () => {
 
     glassesContainer.position.copy(lastPos)
     glassesContainer.quaternion.copy(lastQuat)
-    glassesContainer.scale.set(1, 1, 1)
+    glassesContainer.scale.copy(scl)
 
     if (faceOccluder.value) {
       faceOccluder.value.position.copy(lastPos)
       faceOccluder.value.quaternion.copy(lastQuat)
-      faceOccluder.value.scale.set(1, 1, 1)
+      faceOccluder.value.scale.copy(scl)
     }
   }
 
