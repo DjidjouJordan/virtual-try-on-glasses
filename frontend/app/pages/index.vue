@@ -173,7 +173,7 @@ onUnmounted(() => clearInterval(timer))
         </div>
 
         <div class="text-center">
-          <NuxtLink to="/profile" class="text-sm text-blue-600 font-semibold">
+          <NuxtLink to="/login" class="text-sm text-blue-600 font-semibold">
             Se connecter
           </NuxtLink>
         </div>

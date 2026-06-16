@@ -17,14 +17,20 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    public: {
+      apiBase: 'http://localhost:8000/api'
+    }
+  },
+
   routeRules: {
     '/catalog': { ssr: false },
-    '/try-on': { ssr: false },
+    '/try-on': { ssr: false }
   },
   devServer: {
     https: true,
     // Optionnel : pratique pour exposer sur ton réseau local et tester sur smartphone
-    host: '0.0.0.0', 
+    host: '0.0.0.0',
     port: 3000
   },
 
@@ -95,8 +101,8 @@ export default defineNuxtConfig({
           options: {
             cacheName: 'dpglasses-api',
             networkTimeoutSeconds: 5,
-            expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
-          },
+            expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 }
+          }
         },
         {
           // Modèles 3D + wasm — CacheFirst : rarement modifiés
@@ -104,8 +110,8 @@ export default defineNuxtConfig({
           handler: 'CacheFirst' as const,
           options: {
             cacheName: 'dpglasses-models',
-            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 },
-          },
+            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 }
+          }
         },
         {
           // Images montures depuis le backend
@@ -113,10 +119,10 @@ export default defineNuxtConfig({
           handler: 'StaleWhileRevalidate' as const,
           options: {
             cacheName: 'dpglasses-images',
-            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-          },
-        },
-      ],
+            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }
+          }
+        }
+      ]
     }
-  },
+  }
 })
