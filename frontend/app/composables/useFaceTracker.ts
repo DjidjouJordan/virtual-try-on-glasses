@@ -26,7 +26,7 @@ export const useFaceTracker = () => {
         modelAssetPath: '/models/face_landmarker.task',
         delegate: 'GPU' // Utilise l'accélération matérielle du smartphone
       },
-      outputFaceBlendshapes: true,
+      outputFaceBlendshapes: false,
       outputFacialTransformationMatrixes: true,
       runningMode: 'VIDEO',
       numFaces: 1 // On limite à un seul visage pour maximiser les FPS

@@ -21,6 +21,12 @@ export default defineNuxtConfig({
     '/catalog': { ssr: false },
     '/try-on': { ssr: false },
   },
+  devServer: {
+    https: true,
+    // Optionnel : pratique pour exposer sur ton réseau local et tester sur smartphone
+    host: '0.0.0.0', 
+    port: 3000
+  },
 
   compatibilityDate: '2025-01-15',
 
@@ -112,5 +118,5 @@ export default defineNuxtConfig({
         },
       ],
     }
-  }
+  },
 })
