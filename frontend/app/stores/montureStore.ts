@@ -4,15 +4,31 @@ import { useDB } from '~/composables/useDB'
 
 export interface Monture {
   id: string
-  modele: string
-  prix: string
+  nom: string
+  marque: string | null
+  prix: number
   description: string | null
-  image_url: string | null
-  modele3d_id: string
-  modele3_d: {
-    id: string
-    url_fichier: string
-    scale_offset: string
+  categorie: string | null
+  couleur: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  image: {
+    original: string
+    thumb: string
+    preview: string
+    webp: string
+  }
+}
+
+interface ApiResponse {
+  data: {
+    data: Monture[]
+    meta: {
+      current_page: number
+      last_page: number
+      total: number
+    }
   }
 }
 
@@ -21,28 +37,63 @@ export const useMontureStore = defineStore('monture', {
     montures: [] as Monture[],
     selected: null as Monture | null,
     loading: false,
+
+    pagination: {
+      current_page: 1,
+      last_page: 1,
+      total: 0
+    }
   }),
 
   getters: {
-    getById: (state) => (id: string) => state.montures.find(m => m.id === id),
+    getById: (state) => (id: string) =>
+      state.montures.find(m => m.id === id)
   },
 
   actions: {
-    async fetchAll() {
+    async fetchAll(page = 1) {
       this.loading = true
+
       try {
-        const { data, error } = await useFetch<Monture[]>('/api/montures', {
-          baseURL: 'http://localhost:8000',
-        })
+        const { data, error } = await useFetch<any>(
+          '/api/montures',
+          {
+            baseURL: 'http://localhost:8000',
+            query: { page }
+          }
+        )
+
         if (error.value) throw error.value
-        this.montures = data.value ?? []
-        // Persist to IndexedDB for offline use
-        if (import.meta.client && this.montures.length) {
-          const db = useDB()
-          await db.montures.bulkPut(this.montures)
+
+        // ✅ DEBUG IMPORTANT
+        console.log('API RAW:', data.value)
+
+        const response = data.value?.data
+
+        this.montures = Array.isArray(response?.data)
+          ? response.data
+          : []
+
+        // pagination
+        this.pagination = {
+          current_page: response?.current_page ?? 1,
+          last_page: response?.last_page ?? 1,
+          total: response?.total ?? 0
         }
-      } catch {
-        // Offline fallback: load from Dexie
+
+        // 🟢 SAFE INDEXEDDB FIX
+        if (import.meta.client) {
+          const db = useDB()
+
+          await db.montures.clear()
+
+          await db.montures.bulkPut(
+            JSON.parse(JSON.stringify(this.montures))
+          )
+        }
+      } catch (err) {
+        console.error('fetchAll error:', err)
+
         if (import.meta.client) {
           const db = useDB()
           this.montures = await db.montures.toArray()
@@ -53,38 +104,26 @@ export const useMontureStore = defineStore('monture', {
     },
 
     async fetchOne(id: string) {
-      const { data } = await useFetch<Monture>(`/api/montures/${id}`, {
-        baseURL: 'http://localhost:8000',
-      })
-      this.selected = data.value ?? null
-      return this.selected
+      this.loading = true
+
+      try {
+        const { data, error } = await useFetch<{ data: Monture }>(
+          `/api/montures/${id}`,
+          { baseURL: 'http://localhost:8000' }
+        )
+
+        if (error.value) throw error.value
+
+        this.selected = data.value?.data ?? null
+        return this.selected
+      } finally {
+        this.loading = false
+      }
     },
 
-    select(monture: Monture) {
-      this.selected = monture
-    },
-
-    async create(payload: Partial<Monture>) {
-      const auth = useAuthStore()
-      const { data, error } = await useFetch('/api/montures', {
-        method: 'POST',
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${auth.token}` },
-        body: payload,
-      })
-      if (error.value) throw error.value
-      await this.fetchAll()
-      return data.value
-    },
-
-    async remove(id: string) {
-      const auth = useAuthStore()
-      await useFetch(`/api/montures/${id}`, {
-        method: 'DELETE',
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${auth.token}` },
-      })
-      this.montures = this.montures.filter(m => m.id !== id)
-    },
-  },
+    add(m: Monture) {
+      // ⚠️ sécurité panier
+      this.montures.push(m)
+    }
+  }
 })

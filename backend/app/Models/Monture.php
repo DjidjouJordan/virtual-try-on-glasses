@@ -7,21 +7,51 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Monture extends Model
+class Monture extends Model  implements HasMedia
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, InteractsWithMedia;
 
-    protected $fillable = ['modele', 'prix', 'description', 'image_url', 'modele3d_id'];
+    protected $table = 'montures';
+    protected $keyType = 'string';
+    public $incrementing = false;
 
-    protected function casts(): array
-    {
-        return ['prix' => 'decimal:2'];
-    }
+    protected $fillable = ['id', 'nom', 'marque', 'prix', 'description', 'categorie', 'couleur', 'is_active', 'modele3d_id'];
 
-    public function modele3D(): BelongsTo
+    protected $casts = ['prix' => 'decimal:2', 'is_active' => 'boolean'];
+
+    public function modele3d(): BelongsTo
     {
         return $this->belongsTo(Modele3D::class, 'modele3d_id');
+    }
+
+    public function registerMediaCollections(): void {
+        $this->addMediaCollection('image')
+            ->singleFile();
+
+        $this->addMediaCollection('gallery');
+    }
+
+    public function registerMediaConversions(Media $media = null): void{
+        $this->addMediaConversion('thumb')
+            ->width(300)
+            ->height(300)
+            ->sharpen(10)
+            ->performOnCollections('image', 'gallery');
+
+        $this->addMediaConversion('preview')
+            ->width(800)
+            ->height(600)
+            ->sharpen(90)
+            ->performOnCollections('image', 'gallery');
+
+        $this->addMediaConversion('webp')
+            ->format('webp')
+            ->quality(85)
+            ->performOnCollections('image', 'gallery');
     }
 
     public function favoris(): HasMany
@@ -42,6 +72,18 @@ class Monture extends Model
     /** get3DAsset() — retourne le modèle 3D associé */
     public function get3DAsset(): ?Modele3D
     {
-        return $this->modele3D;
+        return $this->modele3d;
+    }
+
+    public function getImageThumbAttribute() : ?string{
+        return $this->getFirstMediaUrl('image', 'thumb');
+    }
+
+    public function getImagePreviewAttribute() : ?string{
+        return $this->getFirstMediaUrl('image', 'preview');
+    }
+
+    public function getModele3dUrlAAttribute() : ?string{
+        return $this->modele3d?->getFirstMediaUrl('fichier3d');
     }
 }

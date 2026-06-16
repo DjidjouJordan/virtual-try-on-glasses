@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('modele3ds', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('url_fichier');
+            // $table->string('url_fichier');
             $table->string('scale_offset')->default('1.0');
             $table->timestamps();
         });
