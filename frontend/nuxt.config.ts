@@ -69,6 +69,10 @@ export default defineNuxtConfig({
   },
 
   // 3. La configuration des modules spécifiques
+  pinia: {
+    storesDirs: ['./app/stores/**']
+  },
+
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
@@ -82,7 +86,37 @@ export default defineNuxtConfig({
     },
     workbox: {
       navigateFallback: '/',
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}']
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,wasm,task,glb,obj}'],
+      runtimeCaching: [
+        {
+          // API Laravel — NetworkFirst : essaie le réseau, sinon cache
+          urlPattern: /^http:\/\/localhost:8000\/api\/.*/,
+          handler: 'NetworkFirst' as const,
+          options: {
+            cacheName: 'dpglasses-api',
+            networkTimeoutSeconds: 5,
+            expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
+          },
+        },
+        {
+          // Modèles 3D + wasm — CacheFirst : rarement modifiés
+          urlPattern: /\.(glb|obj|task|wasm)$/,
+          handler: 'CacheFirst' as const,
+          options: {
+            cacheName: 'dpglasses-models',
+            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 },
+          },
+        },
+        {
+          // Images montures depuis le backend
+          urlPattern: /^http:\/\/localhost:8000\/storage\/.*/,
+          handler: 'StaleWhileRevalidate' as const,
+          options: {
+            cacheName: 'dpglasses-images',
+            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+          },
+        },
+      ],
     }
   },
 })

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const auth = useAuthStore()
+auth.restore()
+
 const colorMode = useColorMode()
 
 const footerLogo = computed(() => {

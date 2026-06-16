@@ -49,7 +49,6 @@ export const useGlassesScene = () => {
 
     scene.add(glassesContainer)
     loadFaceOccluder()
-    loadGlasses()
   }
 
   /**
@@ -87,13 +86,19 @@ export const useGlassesScene = () => {
     })
   }
 
-  const loadGlasses = () => {
+  const loadGlasses = (url: string, scaleOffset = 1.0) => {
+    // Remove previous model
+    if (glassesModel.value) {
+      glassesContainer.remove(glassesModel.value)
+      glassesModel.value = null
+    }
+
     const loader = new GLTFLoader()
     const dracoLoader = new DRACOLoader()
     dracoLoader.setDecoderPath('/draco/')
     loader.setDRACOLoader(dracoLoader)
 
-    loader.load('/models/glasses_model.glb', (gltf: any) => {
+    loader.load(url, (gltf: any) => {
       const model = gltf.scene
       const box = new THREE.Box3().setFromObject(model)
       const center = box.getCenter(new THREE.Vector3())
@@ -105,7 +110,7 @@ export const useGlassesScene = () => {
       const pivot = new THREE.Group()
       pivot.add(model)
 
-      pivot.scale.setScalar(calibration.scale)
+      pivot.scale.setScalar(calibration.scale * scaleOffset)
       pivot.position.set(0, calibration.positionY, calibration.positionZ)
       pivot.rotation.set(calibration.rotationX, calibration.rotationY, calibration.rotationZ)
 
@@ -146,5 +151,5 @@ export const useGlassesScene = () => {
     if (renderer && camera) renderer.render(scene, camera)
   }
 
-  return { initScene, renderFrame, updatePose, updateSize, glassesModel, calibration }
+  return { initScene, renderFrame, updatePose, updateSize, loadGlasses, glassesModel, calibration }
 }
