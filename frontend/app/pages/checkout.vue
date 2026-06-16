@@ -1,21 +1,46 @@
 <script setup lang="ts">
-import { useShop } from '~/composables/useShop'
+definePageMeta({ middleware: 'auth' })
 
-const { cartItems, cartTotal, cartCount, formatPrice } = useShop()
-const router = useRouter()
+const cartStore = useCartStore()
+const auth = useAuthStore()
+
+const cartItems = computed(() => cartStore.items)
+const cartTotal = computed(() => cartStore.total)
 
 const selectedPayment = ref<'momo' | 'orange'>('momo')
 const phoneNumber = ref('')
 const isConfirming = ref(false)
+const payError = ref('')
 
 const deliveryFee = computed(() => cartTotal.value >= 100000 ? 0 : 2500)
 const totalToPay = computed(() => cartTotal.value + deliveryFee.value)
 
+function formatPrice(prix: number): string {
+  return prix.toLocaleString('fr-FR') + ' FCFA'
+}
+
 async function handlePay() {
   if (!phoneNumber.value || phoneNumber.value.length < 9) return
+  payError.value = ''
   isConfirming.value = true
-  await new Promise(r => setTimeout(r, 2500))
-  router.push('/catalog')
+  try {
+    await useFetch('/api/commandes', {
+      method: 'POST',
+      baseURL: 'http://localhost:8000',
+      headers: { Authorization: `Bearer ${auth.token}` },
+      body: {
+        methode_paiement: selectedPayment.value,
+        telephone: `+237${phoneNumber.value}`,
+        montant_total: totalToPay.value,
+        articles: cartStore.items.map(i => ({ monture_id: i.monture.id, quantity: i.quantity })),
+      },
+    })
+    cartStore.clear()
+    await navigateTo('/catalog')
+  } catch {
+    payError.value = 'Le paiement a échoué. Vérifiez votre numéro et réessayez.'
+    isConfirming.value = false
+  }
 }
 </script>
 
@@ -101,6 +126,12 @@ async function handlePay() {
             </div>
           </div>
 
+          <!-- Pay error -->
+          <div v-if="payError" class="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
+            <UIcon name="i-lucide-circle-alert" class="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <p class="text-sm text-red-600 font-medium">{{ payError }}</p>
+          </div>
+
           <!-- Confirmation status -->
           <div v-if="isConfirming" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
             <UIcon name="i-lucide-loader" class="w-5 h-5 text-amber-500 animate-spin shrink-0 mt-0.5" />
@@ -137,20 +168,18 @@ async function handlePay() {
             <div class="space-y-2">
               <div
                 v-for="item in cartItems"
-                :key="item.glasses.id"
+                :key="item.monture.id"
                 class="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5"
               >
-                <div
-                  class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                  :style="`background: linear-gradient(135deg, ${item.glasses.bgFrom}, ${item.glasses.bgTo})`"
-                >
-                  <UIcon name="i-heroicons-eye" class="w-5 h-5 opacity-25 text-gray-600" />
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-gradient-to-br from-indigo-100 to-blue-100">
+                  <img v-if="item.monture.image_url" :src="item.monture.image_url" :alt="item.monture.modele" class="w-full h-full object-cover">
+                  <UIcon v-else name="i-lucide-glasses" class="w-5 h-5 text-blue-400 opacity-50" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-xs font-bold text-gray-800 truncate">{{ item.glasses.name }}</p>
-                  <p class="text-[10px] text-gray-400">{{ item.glasses.category }} · Qté {{ item.quantity }}</p>
+                  <p class="text-xs font-bold text-gray-800 truncate">{{ item.monture.modele }}</p>
+                  <p class="text-[10px] text-gray-400">Qté {{ item.quantity }}</p>
                 </div>
-                <p class="text-xs font-extrabold text-blue-700 shrink-0">{{ formatPrice(item.glasses.price) }}</p>
+                <p class="text-xs font-extrabold text-blue-700 shrink-0">{{ formatPrice(parseFloat(item.monture.prix) * item.quantity) }}</p>
               </div>
             </div>
 

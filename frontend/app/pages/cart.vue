@@ -1,9 +1,24 @@
 <script setup lang="ts">
-import { useShop } from '~/composables/useShop'
+const cartStore = useCartStore()
 
-const { cartItems, cartTotal, cartCount, removeFromCart, updateQuantity, formatPrice } = useShop()
+const cartItems = computed(() => cartStore.items)
+const cartTotal = computed(() => cartStore.total)
+const cartCount = computed(() => cartStore.count)
+
 const city = ref('Douala, Cameroun')
 const address = ref('')
+
+function formatPrice(prix: number): string {
+  return prix.toLocaleString('fr-FR') + ' FCFA'
+}
+
+function updateQuantity(montureId: string, delta: number) {
+  const item = cartStore.items.find(i => i.monture.id === montureId)
+  if (!item) return
+  const newQty = item.quantity + delta
+  if (newQty <= 0) cartStore.remove(montureId)
+  else item.quantity = newQty
+}
 </script>
 
 <template>
@@ -15,7 +30,7 @@ const address = ref('')
         <NuxtLink to="/catalog" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors shrink-0">
           <UIcon name="i-lucide-arrow-left" class="w-4 h-4 text-gray-700" />
         </NuxtLink>
-        <span class="flex-1 md:flex-none text-center md:text-left text-base font-extrabold text-gray-900">Panier Médical</span>
+        <span class="flex-1 md:flex-none text-center md:text-left text-base font-extrabold text-gray-900">Panier</span>
         <div class="md:ml-2 bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
           {{ cartCount }} ARTICLE{{ cartCount !== 1 ? 'S' : '' }}
         </div>
@@ -39,39 +54,39 @@ const address = ref('')
 
           <div
             v-for="item in cartItems"
-            :key="item.glasses.id"
+            :key="item.monture.id"
             class="bg-white rounded-2xl border border-gray-100 shadow-sm flex gap-3 p-3 md:p-4"
           >
-            <div
-              class="w-20 h-20 md:w-24 md:h-24 rounded-xl flex items-center justify-center shrink-0"
-              :style="`background: linear-gradient(135deg, ${item.glasses.bgFrom}, ${item.glasses.bgTo})`"
-            >
-              <UIcon name="i-heroicons-eye" class="w-10 h-10 opacity-25 text-gray-600" />
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-gradient-to-br from-indigo-50 to-blue-100">
+              <img v-if="item.monture.image_url" :src="item.monture.image_url" :alt="item.monture.modele" class="w-full h-full object-cover">
+              <UIcon v-else name="i-lucide-glasses" class="w-10 h-10 text-blue-300 opacity-50" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-bold text-gray-900 text-sm md:text-base truncate">{{ item.glasses.name }}</p>
-              <p class="text-xs text-gray-400 mb-2">{{ item.glasses.material }}</p>
+              <p class="font-bold text-gray-900 text-sm md:text-base truncate">{{ item.monture.modele }}</p>
+              <p class="text-xs text-gray-400 mb-2 truncate">{{ item.monture.description ?? '—' }}</p>
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2 bg-gray-50 rounded-full px-1 py-1">
                   <button
                     class="w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-600 hover:bg-gray-100 transition-colors"
-                    @click="updateQuantity(item.glasses.id, -1)"
+                    @click="updateQuantity(item.monture.id, -1)"
                   >
                     <UIcon name="i-lucide-minus" class="w-3 h-3" />
                   </button>
                   <span class="text-sm font-bold text-gray-800 w-5 text-center">{{ item.quantity }}</span>
                   <button
                     class="w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-600 hover:bg-gray-100 transition-colors"
-                    @click="updateQuantity(item.glasses.id, +1)"
+                    @click="updateQuantity(item.monture.id, +1)"
                   >
                     <UIcon name="i-lucide-plus" class="w-3 h-3" />
                   </button>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="font-extrabold text-blue-700 text-sm md:text-base">{{ formatPrice(item.glasses.price * item.quantity) }}</span>
+                  <span class="font-extrabold text-blue-700 text-sm md:text-base">
+                    {{ formatPrice(parseFloat(item.monture.prix) * item.quantity) }}
+                  </span>
                   <button
                     class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors"
-                    @click="removeFromCart(item.glasses.id)"
+                    @click="cartStore.remove(item.monture.id)"
                   >
                     <UIcon name="i-lucide-trash-2" class="w-3.5 h-3.5 text-red-500" />
                   </button>
@@ -97,7 +112,7 @@ const address = ref('')
                   type="text"
                   placeholder="Ex: Akwa, face Palais Dika Akwa"
                   class="mt-1 w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm text-gray-700 outline-none focus:border-blue-300"
-                />
+                >
               </div>
             </div>
           </div>

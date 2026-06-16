@@ -1,22 +1,38 @@
 <script setup lang="ts">
-import { mockGlasses, categories, useShop } from '~/composables/useShop'
+const montureStore = useMontureStore()
+const cartStore = useCartStore()
 
-const { addToCart, cartCount, formatPrice } = useShop()
+const cartCount = computed(() => cartStore.count)
 
 const searchQuery = ref('')
 const activeCategory = ref('Tout voir')
 
+const categories = computed(() => {
+  const mods = montureStore.montures.map(m => m.modele.split(' ')[0])
+  return ['Tout voir', ...new Set(mods)]
+})
+
 const filteredGlasses = computed(() => {
-  let list = mockGlasses
+  let list = montureStore.montures
   if (activeCategory.value !== 'Tout voir') {
-    list = list.filter(g => g.category === activeCategory.value)
+    list = list.filter(m => m.modele.startsWith(activeCategory.value))
   }
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(g => g.name.toLowerCase().includes(q) || g.category.toLowerCase().includes(q))
+    list = list.filter(m => m.modele.toLowerCase().includes(q) || (m.description ?? '').toLowerCase().includes(q))
   }
   return list
 })
+
+function formatPrice(prix: string | number): string {
+  return parseFloat(String(prix)).toLocaleString('fr-FR') + ' FCFA'
+}
+
+function addToCart(monture: any) {
+  cartStore.add(monture)
+}
+
+onMounted(() => montureStore.fetchAll())
 </script>
 
 <template>
@@ -134,32 +150,41 @@ const filteredGlasses = computed(() => {
         </p>
       </div>
 
+      <!-- Loading skeleton -->
+      <div v-if="montureStore.loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mt-4 pb-28 md:pb-12">
+        <div v-for="n in 8" :key="n" class="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+          <div class="aspect-square bg-gray-100" />
+          <div class="p-2.5 space-y-2">
+            <div class="h-3 bg-gray-100 rounded-full w-3/4" />
+            <div class="h-2 bg-gray-100 rounded-full w-1/2" />
+            <div class="h-3 bg-gray-100 rounded-full w-1/3" />
+          </div>
+        </div>
+      </div>
+
       <!-- Product Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mt-4 pb-28 md:pb-12">
+      <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mt-4 pb-28 md:pb-12">
         <NuxtLink
           v-for="item in filteredGlasses"
           :key="item.id"
           :to="`/glasses/${item.id}`"
           class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 cursor-pointer"
         >
-          <div
-            class="aspect-square relative flex items-center justify-center"
-            :style="`background: linear-gradient(135deg, ${item.bgFrom}, ${item.bgTo})`"
-          >
-            <UIcon name="i-heroicons-eye" class="w-16 h-16 md:w-20 md:h-20 opacity-20 text-gray-600" />
-            <div
-              v-if="item.badge"
-              class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-extrabold text-white tracking-wider"
-              :class="item.badge === 'NOUVEAU' ? 'bg-orange-500' : 'bg-blue-600'"
+          <!-- Image or gradient fallback -->
+          <div class="aspect-square relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 to-blue-100">
+            <img
+              v-if="item.image_url"
+              :src="item.image_url"
+              :alt="item.modele"
+              class="w-full h-full object-cover"
             >
-              {{ item.badge }}
-            </div>
+            <UIcon v-else name="i-lucide-glasses" class="w-16 h-16 md:w-20 md:h-20 opacity-20 text-blue-600" />
           </div>
           <div class="p-2.5 md:p-3">
-            <p class="text-xs md:text-sm font-bold text-gray-900 truncate">{{ item.name }}</p>
-            <p class="text-[10px] text-gray-400 mb-1.5">{{ item.category }}</p>
+            <p class="text-xs md:text-sm font-bold text-gray-900 truncate">{{ item.modele }}</p>
+            <p class="text-[10px] text-gray-400 mb-1.5 truncate">{{ item.description ?? '—' }}</p>
             <div class="flex items-center justify-between">
-              <span class="text-sm font-extrabold text-blue-700">{{ formatPrice(item.price) }}</span>
+              <span class="text-sm font-extrabold text-blue-700">{{ formatPrice(item.prix) }}</span>
               <button
                 class="w-6 h-6 md:w-7 md:h-7 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-sm shadow-blue-600/40 transition-colors"
                 @click.prevent="addToCart(item)"
@@ -170,9 +195,11 @@ const filteredGlasses = computed(() => {
           </div>
         </NuxtLink>
 
-        <div v-if="filteredGlasses.length === 0" class="col-span-2 md:col-span-3 lg:col-span-4 py-16 text-center">
+        <div v-if="filteredGlasses.length === 0 && !montureStore.loading" class="col-span-2 md:col-span-3 lg:col-span-4 py-16 text-center">
           <UIcon name="i-lucide-search-x" class="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <p class="text-sm text-gray-400">Aucune monture trouvée pour "{{ searchQuery }}"</p>
+          <p class="text-sm text-gray-400">
+            {{ searchQuery ? `Aucune monture pour "${searchQuery}"` : 'Aucune monture disponible.' }}
+          </p>
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
-const { cartCount } = useShop()
+const auth = useAuthStore()
+const cartStore = useCartStore()
+const cartCount = computed(() => cartStore.count)
 
 const navItems = [
   { label: 'Catalogue', shortLabel: 'CATALOG', icon: 'i-lucide-layout-grid', to: '/catalog' },
@@ -80,8 +82,9 @@ function isActive(item: { to: string }) {
             <UIcon name="i-lucide-user-round" class="w-4 h-4 text-blue-600" />
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-bold text-gray-700">Invité</p>
-            <NuxtLink to="/profile" class="text-[10px] text-blue-500 font-medium">Se connecter →</NuxtLink>
+            <p class="text-xs font-bold text-gray-700 truncate">{{ auth.user?.nom ?? 'Invité' }}</p>
+            <NuxtLink v-if="!auth.isAuthenticated" to="/login" class="text-[10px] text-blue-500 font-medium">Se connecter →</NuxtLink>
+            <button v-else class="text-[10px] text-red-400 font-medium hover:text-red-600" @click="auth.logout()">Déconnexion</button>
           </div>
         </div>
       </div>
