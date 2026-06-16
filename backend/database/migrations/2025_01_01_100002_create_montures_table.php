@@ -10,10 +10,14 @@ return new class extends Migration
     {
         Schema::create('montures', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('modele');
-            $table->decimal('prix', 10, 2);
+            $table->string('nom');
+            $table->string('marque')->nullable();
+            $table->decimal('prix', 8, 2);
             $table->text('description')->nullable();
-            $table->string('image_url')->nullable();
+            $table->string('categorie')->nullable();
+            $table->string('couleur')->nullable()->default('black');
+            $table->boolean('is_active')->default(true);
+            // $table->string('image_url')->nullable();
             $table->foreignUuid('modele3d_id')->constrained('modele3ds')->cascadeOnDelete();
             $table->timestamps();
         });

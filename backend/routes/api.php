@@ -44,5 +44,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/montures',              [MontureController::class, 'store']);
         Route::put('/montures/{monture}',     [MontureController::class, 'update']);
         Route::delete('/montures/{monture}',  [MontureController::class, 'destroy']);
+        Route::delete('montures/{monture}/media/{media}', [MontureController::class, 'deleteMedia']);
     });
 });
