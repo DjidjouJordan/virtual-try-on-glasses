@@ -5,6 +5,7 @@ interface User {
   nom: string
   email: string
   role: 'client' | 'admin'
+  email_verified_at?: string | null
   client?: {
     id: string
     ecart_pupillaire: number | null
@@ -16,76 +17,200 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
     token: null as string | null,
+
+    // état OTP flow
+    pendingEmail: null as string | null
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
-    isAdmin: (state) => state.user?.role === 'admin',
-    clientId: (state) => state.user?.client?.id ?? null,
+    isAuthenticated: state => !!state.token,
+    isAdmin: state => state.user?.role === 'admin',
+    isEmailVerified: state => !!state.user?.email_verified_at,
   },
 
   actions: {
-    async register(nom: string, email: string, password: string, passwordConfirmation: string) {
-      const { data, error } = await useFetch('/api/register', {
+
+    /* =========================
+       REGISTER STEP 1 (CREATE USER)
+       ========================= */
+    async register(nom: string, email: string, password: string) {
+      const { data, error } = await useFetch('http://localhost:8000/api/auth/register', {
         method: 'POST',
-        baseURL: 'http://localhost:8000',
-        body: { nom, email, password, password_confirmation: passwordConfirmation },
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { nom, email, password }
       })
+
       if (error.value) throw error.value
-      const res = data.value as any
-      this.token = res.token
-      this.user = res.user
-      this._persist()
+
+      this.pendingEmail = email
+      return data.value
     },
 
+    /* =========================
+       REGISTER STEP 2 (SEND OTP)
+       ========================= */
+    async sendRegisterOtp(email: string) {
+      const { error } = await useFetch('http://localhost:8000/api/auth/register/otp', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { email }
+      })
+
+      if (error.value) throw error.value
+
+      this.pendingEmail = email
+    },
+
+    /* =========================
+       REGISTER STEP 3 (VERIFY OTP)
+       ========================= */
+    async verifyRegisterOtp(email: string, code: string) {
+      const { data, error } = await useFetch('http://localhost:8000/api/auth/register/verify', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { email, code }
+      })
+
+      if (error.value) throw error.value
+
+      const user = data.value as User
+      this.user = user
+
+      return user
+    },
+
+    /* =========================
+       LOGIN (PASSWORD ONLY)
+       ========================= */
     async login(email: string, password: string) {
-      const { data, error } = await useFetch('/api/login', {
+      const { data, error } = await useFetch('http://localhost:8000/api/auth/login', {
         method: 'POST',
-        baseURL: 'http://localhost:8000',
-        body: { email, password },
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { email, password }
       })
+
       if (error.value) throw error.value
+
       const res = data.value as any
-      this.token = res.token
+
       this.user = res.user
-      this._persist()
+      this.token = res.token
+
+      this.persist()
+      return res
     },
 
-    async logout() {
-      await useFetch('/api/logout', {
+    /* =========================
+       RESET PASSWORD OTP
+       ========================= */
+    async sendResetOtp(email: string) {
+      const { error } = await useFetch('http://localhost:8000/api/auth/password/forgot', {
         method: 'POST',
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${this.token}` },
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { email }
       })
+
+      if (error.value) throw error.value
+      this.pendingEmail = email
+    },
+
+    async resetPassword(email: string, code: string, password: string) {
+      const { error } = await useFetch('http://localhost:8000/api/auth/password/reset', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json'
+        },
+        body: { email, code, password }
+      })
+
+      if (error.value) throw error.value
+    },
+
+    /* =========================
+       UPDATE PROFILE
+       ========================= */
+    async updateProfile(payload: any) {
+      const { data, error } = await useFetch('http://localhost:8000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          Accept: 'application/json'
+        },
+        body: payload
+      })
+
+      if (error.value) throw error.value
+
+      this.user = data.value as User
+      this.persist()
+    },
+
+    /* =========================
+       CHANGE PASSWORD (LOGGED IN)
+       ========================= */
+    async changePassword(old_password: string, new_password: string) {
+      const { error } = await useFetch('http://localhost:8000/api/auth/password/change', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          Accept: 'application/json'
+        },
+        body: { old_password, new_password }
+      })
+
+      if (error.value) throw error.value
+    },
+
+    /* =========================
+       LOGOUT
+       ========================= */
+    async logout() {
+      if (this.token) {
+        await useFetch('http://localhost:8000/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            Accept: 'application/json'
+          }
+        })
+      }
+
       this.token = null
       this.user = null
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
-      navigateTo('/login')
+
+      if (import.meta.client) {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('auth_user')
+      }
     },
 
-    async fetchMe() {
-      if (!this.token) return
-      const { data } = await useFetch('/api/me', {
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${this.token}` },
-      })
-      if (data.value) this.user = data.value as User
-    },
-
+    /* =========================
+       RESTORE SESSION
+       ========================= */
     restore() {
-      if (import.meta.client) {
-        this.token = localStorage.getItem('auth_token')
-        const raw = localStorage.getItem('auth_user')
-        this.user = raw ? JSON.parse(raw) : null
-      }
+      if (!import.meta.client) return
+
+      this.token = localStorage.getItem('auth_token')
+      const raw = localStorage.getItem('auth_user')
+
+      this.user = raw ? JSON.parse(raw) : null
     },
 
-    _persist() {
-      if (import.meta.client) {
-        localStorage.setItem('auth_token', this.token ?? '')
-        localStorage.setItem('auth_user', JSON.stringify(this.user))
-      }
-    },
-  },
+    persist() {
+      if (!import.meta.client) return
+
+      localStorage.setItem('auth_token', this.token ?? '')
+      localStorage.setItem('auth_user', JSON.stringify(this.user))
+    }
+  }
 })

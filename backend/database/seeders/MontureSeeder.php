@@ -137,7 +137,9 @@ class MontureSeeder extends Seeder
 
             $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
             if(file_exists($pathGlb)){
-                $modele->addMedia($pathGlb)->toMediaCollection('fichier3d');
+                $modele->addMedia($pathGlb)
+                       ->preservingOriginal()
+                       ->toMediaCollection('fichier3d');
             }
             $this->command->info("GLB PATH: " . $pathGlb);
             $this->command->info("EXISTS: " . (file_exists($pathGlb) ? 'YES' : 'NO'));

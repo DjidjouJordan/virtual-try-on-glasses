@@ -8,12 +8,20 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasMedia
 {
-    use HasApiTokens, HasFactory, HasUuids, Notifiable;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable, InteractsWithMedia;
 
-    protected $fillable = ['nom', 'email', 'password', 'role'];
+    protected $fillable = [
+        'nom',
+        'email',
+        'password',
+        'role',
+        'email_verified_at'
+    ];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -21,8 +29,13 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')->singleFile();
     }
 
     public function isAdmin(): bool
@@ -30,8 +43,13 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
-    public function client(): HasOne
+    public function client()
     {
         return $this->hasOne(Client::class);
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('avatar');
     }
 }

@@ -1,9 +1,25 @@
 <script setup lang="ts">
 import { useMontureStore } from '~/stores/montureStore'
 import { useCartStore } from '~/stores/cartStore'
+import { useAuthStore } from '~/stores/authStore'
+import { useFavoriStore } from '~/stores/favoriStore'
+
+definePageMeta({ layout: 'default' })
 
 const montureStore = useMontureStore()
 const cartStore = useCartStore()
+const favoriStore = useFavoriStore()
+
+const auth = useAuthStore()
+const router = useRouter()
+
+function goToProfile() {
+  if (auth.isAuthenticated) {
+    router.push('/profile')
+  } else {
+    router.push('/login')
+  }
+}
 
 const searchQuery = ref('')
 const activeCategory = ref('Tout voir')
@@ -11,7 +27,20 @@ const activeCategory = ref('Tout voir')
 const cartCount = computed(() => cartStore.count)
 
 /**
- * ✅ sécurité anti-crash
+ * animation like Instagram
+ */
+const animatingHearts = ref<Set<string>>(new Set())
+
+function triggerHeartAnimation(id: string) {
+  animatingHearts.value.add(id)
+
+  setTimeout(() => {
+    animatingHearts.value.delete(id)
+  }, 600)
+}
+
+/**
+ * sécurité anti-crash
  */
 const safeMontures = computed(() => {
   return Array.isArray(montureStore.montures)
@@ -59,12 +88,39 @@ function formatPrice(p: number) {
   return Number(p).toLocaleString('fr-FR') + ' FCFA'
 }
 
+/**
+ * CART
+ */
 function addToCart(item: any) {
   cartStore.add(item)
 }
 
-onMounted(() => {
-  montureStore.fetchAll()
+/**
+ * FAVORI TOGGLE (LIKE / UNLIKE)
+ */
+async function toggleFavori(item: any) {
+  if (!auth.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  triggerHeartAnimation(item.id)
+
+  // vibration mobile (Instagram feel)
+  if (navigator.vibrate) {
+    navigator.vibrate(50)
+  }
+
+  try {
+    await favoriStore.toggle(item.id)
+  } catch (e) {
+    console.error('Erreur favori:', e)
+  }
+}
+
+onMounted(async () => {
+  await montureStore.fetchAll()
+  await favoriStore.fetchAll()
 })
 
 watchEffect(() => {
@@ -79,7 +135,6 @@ watchEffect(() => {
     <div class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 md:px-8 py-3">
       <div class="max-w-7xl mx-auto flex items-center gap-3">
 
-        <!-- Location -->
         <div class="flex items-center gap-1.5 text-xs shrink-0">
           <UIcon name="i-lucide-map-pin" class="w-3.5 h-3.5 text-blue-600" />
           <button class="font-bold text-gray-800 border-b-2 border-blue-600 pb-0.5">
@@ -87,14 +142,12 @@ watchEffect(() => {
           </button>
         </div>
 
-        <!-- Logo mobile -->
         <span class="md:hidden flex-1 text-center text-base font-extrabold text-gray-900">
           DPGlasses
         </span>
 
         <div class="hidden md:flex flex-1" />
 
-        <!-- Search desktop -->
         <div class="hidden md:flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-2.5 w-80">
           <UIcon name="i-lucide-search" class="w-4 h-4 text-gray-400" />
           <input
@@ -105,7 +158,6 @@ watchEffect(() => {
           />
         </div>
 
-        <!-- Icons -->
         <div class="flex items-center gap-2">
           <NuxtLink
             to="/cart"
@@ -120,14 +172,23 @@ watchEffect(() => {
               {{ cartCount }}
             </span>
           </NuxtLink>
-        </div>
 
+          <button
+            class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full hover:bg-gray-100 transition"
+            @click="goToProfile"
+          >
+            <UIcon
+              :name="auth.isAuthenticated ? 'i-lucide-user-check' : 'i-lucide-user'"
+              class="w-4 h-4 text-gray-700"
+            />
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 md:px-8">
 
-      <!-- ================= MOBILE SEARCH ================= -->
+      <!-- SEARCH MOBILE -->
       <div class="md:hidden flex items-center gap-2 bg-gray-50 rounded-2xl px-3 py-2.5 mt-3">
         <UIcon name="i-lucide-search" class="w-4 h-4 text-gray-400" />
         <input
@@ -138,20 +199,17 @@ watchEffect(() => {
         />
       </div>
 
-      <!-- ================= HERO ================= -->
+      <!-- HERO -->
       <div class="mt-4 rounded-3xl overflow-hidden relative bg-gradient-to-br from-blue-600 to-blue-900 p-6 text-white">
-
         <h2 class="text-xl md:text-3xl font-extrabold">
           Trouvez la monture parfaite
         </h2>
-
         <p class="text-blue-100 text-sm mt-1">
           Essayage virtuel et catalogue intelligent
         </p>
-
       </div>
 
-      <!-- ================= CATEGORIES ================= -->
+      <!-- CATEGORIES -->
       <div class="flex gap-2 mt-4 overflow-x-auto scrollbar-hide pb-1">
         <button
           v-for="cat in categories"
@@ -166,7 +224,7 @@ watchEffect(() => {
         </button>
       </div>
 
-      <!-- ================= LOADING ================= -->
+      <!-- LOADING -->
       <div
         v-if="montureStore.loading"
         class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5"
@@ -178,7 +236,7 @@ watchEffect(() => {
         />
       </div>
 
-      <!-- ================= PRODUCTS ================= -->
+      <!-- PRODUCTS -->
       <div
         v-else
         class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pb-24"
@@ -203,6 +261,7 @@ watchEffect(() => {
 
           <!-- INFOS -->
           <div class="p-3">
+
             <p class="font-bold text-sm truncate">
               {{ item.nom }}
             </p>
@@ -212,6 +271,7 @@ watchEffect(() => {
             </p>
 
             <div class="flex items-center justify-between mt-2">
+
               <span class="font-extrabold text-blue-600 text-sm">
                 {{ formatPrice(item.prix) }}
               </span>
@@ -224,11 +284,30 @@ watchEffect(() => {
               </button>
             </div>
 
+            <!-- ❤️ FAVORI -->
+            <div class="flex justify-end mt-2">
+              <button
+                @click.prevent="toggleFavori(item)"
+                class="w-7 h-7 rounded-full flex items-center justify-center transition"
+                :class="[
+                  favoriStore.isFavori(item.id)
+                    ? 'text-pink-500 bg-pink-50'
+                    : 'text-gray-400 bg-gray-50',
+                  animatingHearts.has(item.id) ? 'heart-bounce' : ''
+                ]"
+              >
+                <UIcon
+                  name="i-lucide-heart"
+                  class="w-4 h-4"
+                />
+              </button>
+            </div>
+
           </div>
 
         </NuxtLink>
 
-        <!-- EMPTY STATE -->
+        <!-- EMPTY -->
         <div
           v-if="filteredGlasses.length === 0 && !montureStore.loading"
           class="col-span-2 md:col-span-4 text-center py-10 text-gray-400"
@@ -239,7 +318,6 @@ watchEffect(() => {
       </div>
 
     </div>
-
   </div>
 </template>
 
@@ -250,5 +328,18 @@ watchEffect(() => {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ❤️ Instagram-like animation */
+@keyframes heartBounce {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.4); }
+  50% { transform: scale(0.9); }
+  75% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.heart-bounce {
+  animation: heartBounce 0.6s ease;
 }
 </style>
