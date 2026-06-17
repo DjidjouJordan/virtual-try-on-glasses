@@ -25,7 +25,8 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/catalog': { ssr: false },
-    '/try-on': { ssr: false }
+    '/try-on': { ssr: false },
+    '/storage/**': { proxy: 'http://localhost:8000/storage/**' }
   },
   devServer: {
     https: true,

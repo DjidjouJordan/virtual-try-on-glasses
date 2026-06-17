@@ -5,10 +5,6 @@ definePageMeta({ layout: false })
 
 const auth = useAuthStore()
 
-if (auth.isAuthenticated) {
-  await navigateTo('/catalog')
-}
-
 const nom = ref('')
 const email = ref('')
 const password = ref('')
@@ -18,28 +14,31 @@ const loading = ref(false)
 
 async function submit() {
   error.value = ''
+
   if (password.value !== passwordConfirmation.value) {
     error.value = 'Les mots de passe ne correspondent pas.'
     return
   }
+
   loading.value = true
+
   try {
-    await auth.register(nom.value, email.value, password.value, passwordConfirmation.value)
-    await navigateTo('/catalog')
+    // ❌ on NE connecte PAS automatiquement
+    await auth.register(nom.value, email.value, password.value)
+
+    // 👉 envoie OTP email verification
+    await auth.sendRegisterOtp(email.value)
+
+    // 👉 redirection vers page OTP
+    await navigateTo(`/verify-email?email=${email.value}`)
+
   } catch (e: any) {
-    const data = e?.data
-    if (data?.errors) {
-      const firstField = Object.values(data.errors)[0] as string[]
-      error.value = firstField[0]
-    } else {
-      error.value = data?.message ?? 'Une erreur est survenue.'
-    }
+    error.value = e?.data?.message ?? 'Erreur lors de la création du compte.'
   } finally {
     loading.value = false
   }
 }
 </script>
-
 <template>
   <div class="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-8">
     <div class="w-full max-w-sm">

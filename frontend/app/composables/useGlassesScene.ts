@@ -86,11 +86,17 @@ export const useGlassesScene = () => {
       return
     }
 
+    // Rewrite absolute backend storage URLs to relative URLs to bypass CORS issues
+    if (url.startsWith('http://localhost:8000/storage/')) {
+      url = url.replace('http://localhost:8000/storage/', '/storage/')
+    }
+
     if (glassesModel.value) {
       glassesContainer.remove(glassesModel.value)
       glassesModel.value = null
     }
 
+    console.log('🔄 DEBUT CHARGEMENT LUNETTES:', url, 'scaleOffset:', scaleOffset)
     const isGLB = url.includes('.glb') || url.includes('.gltf')
 
     if (isGLB) {
@@ -99,23 +105,52 @@ export const useGlassesScene = () => {
       draco.setDecoderPath('/draco/')
       loader.setDRACOLoader(draco)
 
-      loader.load(url, (gltf) => {
-        attachModel(gltf.scene, scaleOffset)
-        draco.dispose()
-      })
+      loader.load(
+        url,
+        (gltf) => {
+          console.log('✅ GLB CHARGÉ AVEC SUCCÈS:', url)
+          attachModel(gltf.scene, scaleOffset)
+          draco.dispose()
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            console.log(`⏳ GLB PROGRESS: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`)
+          }
+        },
+        (error) => {
+          console.error('❌ ERREUR CHARGEMENT GLB:', error)
+          draco.dispose()
+        }
+      )
 
     } else {
       const loader = new OBJLoader()
 
-      loader.load(url, (obj) => {
-        attachModel(obj, scaleOffset)
-      })
+      loader.load(
+        url,
+        (obj) => {
+          console.log('✅ OBJ CHARGÉ AVEC SUCCÈS:', url)
+          attachModel(obj, scaleOffset)
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            console.log(`⏳ OBJ PROGRESS: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`)
+          }
+        },
+        (error) => {
+          console.error('❌ ERREUR CHARGEMENT OBJ:', error)
+        }
+      )
     }
   }
 
   const attachModel = (model: any, scaleOffset: number) => {
+    console.log('🔄 DEBUT ATTACHEMENT DU MODELE...')
     const box = new THREE.Box3().setFromObject(model)
+    const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
+    console.log('📐 Dimensions brutes du modèle (X, Y, Z):', size.x, size.y, size.z, 'Centre:', center)
+
     model.position.sub(center)
 
     model.traverse((c: any) => (c.renderOrder = 1))
@@ -123,7 +158,9 @@ export const useGlassesScene = () => {
     const pivot = new THREE.Group()
     pivot.add(model)
 
-    pivot.scale.setScalar(calibration.scale * scaleOffset)
+    const finalScale = calibration.scale * scaleOffset
+    console.log('⚖️ Echelle finale appliquée:', finalScale)
+    pivot.scale.setScalar(finalScale)
     pivot.position.set(
       0,
       calibration.positionY,
@@ -138,6 +175,7 @@ export const useGlassesScene = () => {
 
     glassesModel.value = pivot
     glassesContainer.add(pivot)
+    console.log('✅ MODELE LUNETTE AJOUTE AU CONTENEUR AVEC SUCCES!')
   }
 
   const renderFrame = () => {

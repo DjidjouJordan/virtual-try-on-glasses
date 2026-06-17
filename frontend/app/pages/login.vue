@@ -18,12 +18,20 @@ const loading = ref(false)
 async function submit() {
   error.value = ''
   loading.value = true
+
   try {
-    await auth.login(email.value, password.value)
+    const res = await auth.login(email.value, password.value)
+
+    if (!res?.user?.email_verified_at) {
+      await auth.sendRegisterOtp(email.value)
+      await navigateTo(`/verify-email?email=${email.value}`)
+      return
+    }
+
     await navigateTo('/catalog')
+
   } catch (e: any) {
-    const msg = e?.data?.message ?? e?.message ?? 'Identifiants incorrects.'
-    error.value = msg
+    error.value = e?.data?.message ?? 'Identifiants incorrects.'
   } finally {
     loading.value = false
   }

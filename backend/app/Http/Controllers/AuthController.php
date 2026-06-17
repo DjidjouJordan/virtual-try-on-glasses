@@ -1,78 +1,111 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
-use App\Models\Client;
-use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /** POST /api/register */
-    public function register(Request $request): JsonResponse
+    public function __construct(
+        private AuthService $authService
+    ) {}
+
+    public function sendRegisterOtp(Request $request)
     {
-        $data = $request->validate([
-            'nom'      => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        $request->validate(['email' => 'required|email']);
+        $this->authService->sendRegisterOtp($request->email);
 
-        $user = User::create([
-            'nom'      => $data['nom'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role'     => 'client',
-        ]);
-
-        // Crée automatiquement le profil Client associé
-        Client::create(['user_id' => $user->id]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user'  => $user->load('client'),
-            'token' => $token,
-        ], 201);
+        return response()->json(['message' => 'OTP envoyé']);
     }
 
-    /** POST /api/login */
-    public function login(Request $request): JsonResponse
+    public function verifyRegisterOtp(Request $request)
     {
-        $data = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required|string',
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required'
         ]);
 
-        if (!Auth::attempt($data)) {
-            throw ValidationException::withMessages([
-                'email' => ['Identifiants incorrects.'],
-            ]);
-        }
+        $user = $this->authService->verifyRegisterOtp(
+            $request->email,
+            $request->code
+        );
 
-        $user  = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
+        return response()->json(['user' => $user]);
+    }
 
-        return response()->json([
-            'user'  => $user->load('client'),
-            'token' => $token,
+    public function sendLoginOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $this->authService->sendLoginOtp($request->email);
+
+        return response()->json(['message' => 'OTP envoyé']);
+    }
+
+    public function verifyLoginOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required'
         ]);
+
+        return response()->json(
+            $this->authService->verifyLoginOtp(
+                $request->email,
+                $request->code
+            )
+        );
     }
 
-    /** POST /api/logout */
-    public function logout(Request $request): JsonResponse
+    public function resetPassword(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required',
+            'password' => 'required|min:6'
+        ]);
 
-        return response()->json(['message' => 'Déconnecté avec succès.']);
+        $this->authService->resetPassword(
+            $request->email,
+            $request->code,
+            $request->password
+        );
+
+        return response()->json(['message' => 'Mot de passe modifié']);
     }
 
-    /** GET /api/me */
-    public function me(Request $request): JsonResponse
+    public function updateProfile(Request $request)
     {
-        return response()->json($request->user()->load('client'));
+        return response()->json(
+            $this->authService->updateProfile(
+                $request->user(),
+                $request->all()
+            )
+        );
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required',
+            'new_password' => 'required|min:6'
+        ]);
+
+        $this->authService->changePassword(
+            $request->user(),
+            $request->old_password,
+            $request->new_password
+        );
+
+        return response()->json(['message' => 'Mot de passe changé']);
+    }
+
+    public function logout(Request $request)
+    {
+        $this->authService->logout($request->user());
+
+        return response()->json(['message' => 'Déconnecté']);
     }
 }

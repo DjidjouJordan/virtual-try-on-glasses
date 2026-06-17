@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,33 +9,58 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory;
 
-    protected $fillable = ['user_id', 'ecart_pupillaire', 'forme_visage'];
+    protected $primaryKey = 'user_id';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'user_id',
+        'ecart_pupillaire',
+        'forme_visage'
+    ];
 
     protected function casts(): array
     {
-        return ['ecart_pupillaire' => 'float'];
+        return [
+            'ecart_pupillaire' => 'decimal:2'
+        ];
     }
 
+    /**
+     * Utilisateur propriétaire
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Favoris du client
+     */
     public function favoris(): HasMany
     {
         return $this->hasMany(Favori::class);
     }
 
+    /**
+     * Captures d'essayage
+     */
     public function snapshots(): HasMany
     {
         return $this->hasMany(Snapshot::class);
     }
 
-    /** mesurerPD() — enregistre l'écart pupillaire mesuré */
-    public function mesurerPD(float $ecartMm): void
+    /**
+     * Mesure et enregistre l'écart pupillaire
+     */
+    public function mesurerPD(float $ecartMm): bool
     {
-        $this->update(['ecart_pupillaire' => $ecartMm]);
+        return $this->update([
+            'ecart_pupillaire' => $ecartMm
+        ]);
     }
 }

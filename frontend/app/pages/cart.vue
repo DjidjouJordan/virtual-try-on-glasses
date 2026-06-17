@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useCartStore } from '~/stores/cartStore'
+
 const cartStore = useCartStore()
 
 const cartItems = computed(() => cartStore.items)
