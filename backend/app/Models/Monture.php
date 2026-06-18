@@ -23,6 +23,13 @@ class Monture extends Model  implements HasMedia
 
     protected $casts = ['prix' => 'decimal:2', 'is_active' => 'boolean'];
 
+    protected $appends = ['image_url', 'image_thumb', 'image_preview'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('image'); 
+    }
+
     public function modele3d(): BelongsTo
     {
         return $this->belongsTo(Modele3D::class, 'modele3d_id');

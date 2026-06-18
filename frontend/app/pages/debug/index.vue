@@ -142,7 +142,8 @@
             />
           </button>
 
-          <button class="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+          <button class="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm"
+                  @click="handleShare">
             <UIcon name="i-lucide-share-2" class="w-4 h-4 text-white" />
           </button>
         </div>
@@ -263,6 +264,7 @@ const snapshotStore = useSnapshotStore()
 
 const videoSource = ref<HTMLVideoElement | null>(null)
 const arCanvas = ref<HTMLCanvasElement | null>(null)
+const activeStream = ref<MediaStream | null>(null)
 
 const isStarted = ref(false)
 const isTracking = ref(false)
@@ -341,6 +343,7 @@ async function startAR() {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: 1280, height: 720, facingMode: 'user' }
     })
+    activeStream.value = stream
 
     if (!videoSource.value || !arCanvas.value) return
 
@@ -516,6 +519,51 @@ async function toggleFavori() {
   }
 }
 
+async function handleShare() {
+  if (!selectedMonture.value) return
+
+  const label = getMontureLabel(selectedMonture.value)
+  // Construit l'URL absolue vers ce profil d'essayage avec la monture sélectionnée
+  const shareUrl = `${window.location.origin}/profile?id=${selectedMonture.value.id}`
+  
+  const shareData = {
+    title: 'DPGlasses — Essayage Virtuel',
+    text: `Que penses-tu de la monture "${label}" que je viens d'essayer en Réalité Augmentée sur DPGlasses ? 🕶️`,
+    url: shareUrl
+  }
+
+  const toast = useToast()
+
+  // 1. Tente d'utiliser le partage natif de l'appareil mobile (Android/iOS)
+  if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData)
+    } catch (err: any) {
+      // On ignore l'erreur si l'utilisateur a juste annulé (fermé le menu sans envoyer)
+      if (err.name !== 'AbortError') {
+        console.error('Erreur lors du partage natif :', err)
+      }
+    }
+  } else {
+    // 2. Fallback de secours si non supporté (ex: protocole non sécurisé ou PC de bureau)
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      toast.add({
+        title: 'Lien copié !',
+        description: 'Le lien d\'essayage de cette monture a été copié pour vos proches.',
+        color: 'blue'
+      })
+    } catch (copyErr) {
+      console.error('Échec de la copie de secours :', copyErr)
+      toast.add({
+        title: 'Erreur',
+        description: 'Impossible de partager ou de copier le lien automatiquement.',
+        color: 'red'
+      })
+    }
+  }
+}
+
 function handleAddToCart() {
   if (selectedMonture.value) {
     cartStore.add(selectedMonture.value)
@@ -552,8 +600,16 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('resize', updateSize)
 
-  if (videoSource.value?.srcObject) {
-    (videoSource.value.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+  // 🔥 Extinction propre et garantie de la caméra
+  if (activeStream.value) {
+    activeStream.value.getTracks().forEach(track => {
+      track.stop() // Arrête proprement le matériel (la LED s'éteint)
+    })
+    activeStream.value = null
+  }
+
+  if (videoSource.value) {
+    videoSource.value.srcObject = null
   }
 })
 </script>

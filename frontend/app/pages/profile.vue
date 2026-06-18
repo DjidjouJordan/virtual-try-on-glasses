@@ -256,12 +256,15 @@ onMounted(async () => {
               <div v-for="fav in favoriStore.favoris" :key="fav.id" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <NuxtLink :to="`/glasses/${fav.monture.id}`">
                   <div class="w-full h-32 bg-gradient-to-br from-indigo-50 to-blue-100">
-                    <img v-if="fav.monture.image_url" :src="fav.monture.image_url" class="w-full h-full object-cover" />
-                  </div>
+                    <img 
+                      v-if="fav.monture.image_url"
+                      :src="fav.monture.image_url.startsWith('http') ? fav.monture.image_url : `http://localhost:8000${fav.monture.image_url}`"
+                      class="w-full h-full object-cover"
+                    >                  </div>
                 </NuxtLink>
                 <div class="p-3 flex justify-between items-center">
                   <div>
-                    <p class="font-bold text-sm">{{ fav.monture.modele }}</p>
+                    <p class="font-bold text-sm">{{ fav.monture.nom || 'Monture sans nom' }}</p>
                     <p class="text-blue-600 font-extrabold text-sm">{{ formatPrice(fav.monture.prix) }}</p>
                   </div>
                   <button 

@@ -60,6 +60,7 @@ class FavoriController extends Controller
                 'date_ajout' => now(),
             ]
         );
+        // $favori->load('monture.modele3_d');
 
         return response()->json($favori->load('monture'), 201);
     }
