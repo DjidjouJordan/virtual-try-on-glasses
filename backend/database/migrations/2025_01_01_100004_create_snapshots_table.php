@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -10,7 +10,10 @@ return new class extends Migration
     {
         Schema::create('snapshots', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('client_id')->constrained('clients')->cascadeOnDelete();
+            $table->foreignUuid('client_id')
+                ->references('user_id')
+                ->on('clients')
+                ->cascadeOnDelete();
             $table->string('image_url');
             $table->timestamp('date_capture')->useCurrent();
             $table->integer('new_attr')->default(0);
@@ -23,3 +26,4 @@ return new class extends Migration
         Schema::dropIfExists('snapshots');
     }
 };
+
