@@ -5,6 +5,7 @@ interface User {
   nom: string
   email: string
   role: 'client' | 'admin'
+  avatar_url?: string | null
   email_verified_at?: string | null
   client?: {
     id: string
@@ -34,141 +35,158 @@ export const useAuthStore = defineStore('auth', {
        REGISTER STEP 1 (CREATE USER)
        ========================= */
     async register(nom: string, email: string, password: string) {
-      const { data, error } = await useFetch('http://localhost:8000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { nom, email, password }
-      })
+      try {
+        const data = await $fetch<any>('http://localhost:8000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { nom, email, password }
+        })
 
-      if (error.value) throw error.value
-
-      this.pendingEmail = email
-      return data.value
+        this.pendingEmail = email
+        return data
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
        REGISTER STEP 2 (SEND OTP)
        ========================= */
     async sendRegisterOtp(email: string) {
-      const { error } = await useFetch('http://localhost:8000/api/auth/register/otp', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { email }
-      })
+      try {
+        await $fetch('http://localhost:8000/api/auth/register/otp', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { email }
+        })
 
-      if (error.value) throw error.value
-
-      this.pendingEmail = email
+        this.pendingEmail = email
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
        REGISTER STEP 3 (VERIFY OTP)
        ========================= */
     async verifyRegisterOtp(email: string, code: string) {
-      const { data, error } = await useFetch('http://localhost:8000/api/auth/register/verify', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { email, code }
-      })
+      try {
+        const data = await $fetch<User>('http://localhost:8000/api/auth/register/verify', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { email, code }
+        })
 
-      if (error.value) throw error.value
-
-      const user = data.value as User
-      this.user = user
-
-      return user
+        this.user = data
+        return data
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
        LOGIN (PASSWORD ONLY)
        ========================= */
     async login(email: string, password: string) {
-      const { data, error } = await useFetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { email, password }
-      })
+      try {
+        const res = await $fetch<any>('http://localhost:8000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { email, password }
+        })
 
-      if (error.value) throw error.value
+        this.user = res.user
+        this.token = res.token
 
-      const res = data.value as any
-
-      this.user = res.user
-      this.token = res.token
-
-      this.persist()
-      return res
+        this.persist()
+        return res
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
        RESET PASSWORD OTP
        ========================= */
     async sendResetOtp(email: string) {
-      const { error } = await useFetch('http://localhost:8000/api/auth/password/forgot', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { email }
-      })
-
-      if (error.value) throw error.value
-      this.pendingEmail = email
+      try {
+        await $fetch('http://localhost:8000/api/auth/password/forgot', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { email }
+        })
+        this.pendingEmail = email
+      } catch (error: any) {
+        throw error
+      }
     },
 
     async resetPassword(email: string, code: string, password: string) {
-      const { error } = await useFetch('http://localhost:8000/api/auth/password/reset', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json'
-        },
-        body: { email, code, password }
-      })
-
-      if (error.value) throw error.value
+      try {
+        await $fetch('http://localhost:8000/api/auth/password/reset', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: { email, code, password }
+        })
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
-       UPDATE PROFILE
+       UPDATE PROFILE (Maintenant lié à ProfileController)
        ========================= */
     async updateProfile(payload: any) {
-      const { data, error } = await useFetch('http://localhost:8000/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          Accept: 'application/json'
-        },
-        body: payload
-      })
+      try {
+        const data = await $fetch<User>('http://localhost:8000/api/profile', {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            Accept: 'application/json'
+          },
+          body: payload
+        })
 
-      if (error.value) throw error.value
-
-      this.user = data.value as User
-      this.persist()
+        // On assigne directement data car le contrôleur retourne l'objet User
+        this.user = data
+        
+        // On sauvegarde dans le localStorage pour le rafraîchissement
+        this.persist()
+        
+        return data
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
        CHANGE PASSWORD (LOGGED IN)
        ========================= */
     async changePassword(old_password: string, new_password: string) {
-      const { error } = await useFetch('http://localhost:8000/api/auth/password/change', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          Accept: 'application/json'
-        },
-        body: { old_password, new_password }
-      })
-
-      if (error.value) throw error.value
+      try {
+        await $fetch('http://localhost:8000/api/auth/password/change', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            Accept: 'application/json'
+          },
+          body: { old_password, new_password }
+        })
+      } catch (error: any) {
+        throw error
+      }
     },
 
     /* =========================
@@ -176,13 +194,17 @@ export const useAuthStore = defineStore('auth', {
        ========================= */
     async logout() {
       if (this.token) {
-        await useFetch('http://localhost:8000/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-            Accept: 'application/json'
-          }
-        })
+        try {
+          await $fetch('http://localhost:8000/api/auth/logout', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+              Accept: 'application/json'
+            }
+          })
+        } catch (error) {
+          console.error('Erreur lors de la déconnexion côté serveur:', error)
+        }
       }
 
       this.token = null
@@ -192,6 +214,9 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
       }
+
+      // Redirection après déconnexion (généralement '/' pour l'accueil)
+      navigateTo('/')
     },
 
     /* =========================

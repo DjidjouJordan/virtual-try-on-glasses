@@ -117,13 +117,6 @@
           </div>
         </Transition>
 
-        <!-- Feedback face -->
-        <ARFaceFeedbackOverlay
-          :is-tracking="isTracking"
-          :is-loaded="isLoaded"
-          :is-too-far="isTooFar"
-        />
-
         <!-- Boutons latéraux -->
         <div class="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
           <button
@@ -453,20 +446,62 @@ async function savePD() {
 }
 
 async function takeSnapshot() {
-  if (!arCanvas.value) return
+  if (!videoSource.value || !arCanvas.value) return
 
+  if (!auth.isAuthenticated) {
+    await navigateTo('/login')
+    return
+  }
+
+  // 1. Déclenche le flash visuel
   snapshotFlash.value = true
   setTimeout(() => {
     snapshotFlash.value = false
-  }, 300)
+  }, 150)
 
-  if (auth.isAuthenticated) {
-    savingSnapshot.value = true
-    try {
-      await snapshotStore.generate(arCanvas.value)
-    } finally {
-      savingSnapshot.value = false
-    }
+  savingSnapshot.value = true
+
+  try {
+    // 2. Récupérer les dimensions exactes du flux vidéo
+    const width = videoSource.value.videoWidth
+    const height = videoSource.value.videoHeight
+
+    // 3. Créer un canvas 2D temporaire (non affiché à l'écran)
+    const compositeCanvas = document.createElement('canvas')
+    compositeCanvas.width = width
+    compositeCanvas.height = height
+    const ctx = compositeCanvas.getContext('2d')
+
+    if (!ctx) throw new Error('Impossible de créer le contexte 2D pour le snapshot')
+
+    // 4. Dessiner le flux vidéo (webcam) en arrière-plan
+    // IMPORTANT : On applique un effet miroir sur la webcam pour correspondre à ce que l'utilisateur voit
+    ctx.translate(width, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(videoSource.value, 0, 0, width, height)
+
+    // 5. Dessiner le canvas 3D (lunettes) par-dessus
+    // Les lunettes sont déjà en miroir dans ThreeJS ou via CSS, donc on remet le contexte normal avant de dessiner le canvas 3D
+    ctx.translate(width, 0)
+    ctx.scale(-1, 1)
+    
+    // Assure-toi que arCanvas (Three.js) dessine sur un fond transparent !
+    ctx.drawImage(arCanvas.value, 0, 0, width, height)
+
+    // 6. Sauvegarder la composition composite finale (Webcam + 3D)
+    const snapshot = await snapshotStore.generate(compositeCanvas)
+
+    console.log('Snapshot composite enregistré :', snapshot)
+
+    const toast = useToast()
+    toast.add({
+      title: 'Capture réussie',
+      description: 'La photo avec votre monture a été sauvegardée.'
+    })
+  } catch (error) {
+    console.error('Erreur lors de la création du snapshot composite :', error)
+  } finally {
+    savingSnapshot.value = false
   }
 }
 
@@ -498,8 +533,20 @@ onMounted(async () => {
   }
 
   if (auth.isAuthenticated) {
-    await favoriStore.fetchAll()
+    await Promise.all([
+      favoriStore.fetchAll(),
+      snapshotStore.fetchAll()
+    ])
   }
+
+  watch(
+    () => auth.isAuthenticated,
+    async (isAuth) => {
+      if (isAuth) {
+        await snapshotStore.fetchAll()
+      }
+    }
+  )
 })
 
 onUnmounted(() => {

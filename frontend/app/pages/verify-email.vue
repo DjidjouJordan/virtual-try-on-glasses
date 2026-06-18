@@ -21,7 +21,7 @@ async function verify() {
 
     auth.user = user
 
-    await navigateTo('/catalog')
+    await navigateTo('/login')
 
   } catch (e: any) {
     error.value = e?.data?.message ?? 'Code invalide'
