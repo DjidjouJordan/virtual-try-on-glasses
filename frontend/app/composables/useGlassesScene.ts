@@ -1,4 +1,3 @@
-// composables/useGlassesScene.ts
 import * as THREE from 'three'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
@@ -15,14 +14,37 @@ export const useGlassesScene = () => {
   const glassesModel = shallowRef<THREE.Group | null>(null)
   const faceOccluder = shallowRef<THREE.Object3D | null>(null)
 
+  /**
+   * Réglages fins
+   * - calibration.scale : ajuste manuellement la taille globale
+   * - position/rotation : petits offsets de calibration
+   */
   const calibration = reactive({
     scale: 1.0,
-    positionY: 1.7,
+    positionX: 0.0,
+    positionY: 0.0,
     positionZ: 0.0,
     rotationX: 0,
-    rotationY: 4.6,
+    rotationY: 0,
     rotationZ: 0
   })
+
+  /**
+   * Taille de base des lunettes après normalisation
+   * Si le modèle reste trop grand, baisse légèrement cette valeur
+   * (ex: 0.10 à 0.12)
+   */
+  const TARGET_GLASSES_WIDTH = 0.025
+
+  /**
+   * Réglages dynamiques selon la distance du visage
+   */
+  const REFERENCE_DEPTH = 0.55
+  const DYNAMIC_SCALE_MIN = 0.55
+  const DYNAMIC_SCALE_MAX = 1.8
+  const DYNAMIC_SCALE_LERP = 0.18
+
+  let smoothedDynamicScale = 1
 
   const initScene = (canvas: HTMLCanvasElement) => {
     const width = window.innerWidth
@@ -32,21 +54,27 @@ export const useGlassesScene = () => {
       canvas,
       alpha: true,
       antialias: true,
-      preserveDrawingBuffer: true // 💡 TRÈS IMPORTANT pour que canvas.toDataURL() ne sorte pas une image noire !
+      preserveDrawingBuffer: true
     })
 
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    camera.position.z = 5
+    /**
+     * FOV un peu large pour mieux coller à l’effet caméra mobile
+     */
+    camera = new THREE.PerspectiveCamera(63, width / height, 0.01, 100)
+    camera.position.set(0, 0, 0)
 
-    scene.add(new THREE.AmbientLight(0xffffff, 2))
-    const light = new THREE.DirectionalLight(0xffffff, 1)
-    light.position.set(0, 5, 5)
+    scene.add(new THREE.AmbientLight(0xffffff, 2.2))
+
+    const light = new THREE.DirectionalLight(0xffffff, 1.2)
+    light.position.set(0, 2, 5)
     scene.add(light)
 
+    glassesContainer.scale.setScalar(1)
     scene.add(glassesContainer)
+
     loadFaceOccluder()
   }
 
@@ -64,33 +92,35 @@ export const useGlassesScene = () => {
   const loadFaceOccluder = () => {
     const loader = new OBJLoader()
 
-    loader.load('/models/canonical_face_model.obj', (obj) => {
-      const mat = new THREE.MeshDepthMaterial({
-        depthWrite: true,
-        colorWrite: false
-      })
+    loader.load(
+      '/models/canonical_face_model.obj',
+      (obj) => {
+        const mat = new THREE.MeshDepthMaterial({
+          depthWrite: true,
+          colorWrite: false
+        })
 
-      obj.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.material = mat
-        }
-      })
+        obj.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.material = mat
+          }
+        })
 
-      faceOccluder.value = obj
-      scene.add(obj)
-    }, undefined, (err) => {
-      console.warn("Impossible de charger l'occluteur facial de base, vérifiez le chemin public.", err)
-    })
+        faceOccluder.value = obj
+        scene.add(obj)
+      },
+      undefined,
+      (err) => {
+        console.warn("Impossible de charger l'occluteur facial.", err)
+      }
+    )
   }
 
-  /**
-   * Fonction utilitaire pour vider proprement un objet 3D de la mémoire GPU
-   */
   const disposeHierarchy = (obj: THREE.Object3D) => {
     obj.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         if (child.geometry) child.geometry.dispose()
-        
+
         if (child.material) {
           if (Array.isArray(child.material)) {
             child.material.forEach((mat) => mat.dispose())
@@ -103,24 +133,18 @@ export const useGlassesScene = () => {
   }
 
   const loadGlasses = (url?: string, scaleOffset = 1.0) => {
-    if (!url || typeof url !== 'string') {
-      console.warn('❌ modèle 3D invalide:', url)
-      return
-    }
+    if (!url || typeof url !== 'string') return
 
-    // Gestion du bypass CORS pour le stockage local du backend
     if (url.startsWith('http://localhost:8000/storage/')) {
       url = url.replace('http://localhost:8000/storage/', '/storage/')
     }
 
-    // Nettoyage complet de l'ancien modèle (Evite les fuites de mémoire RAM/VRAM)
     if (glassesModel.value) {
       glassesContainer.remove(glassesModel.value)
       disposeHierarchy(glassesModel.value)
       glassesModel.value = null
     }
 
-    console.log('🔄 DEBUT CHARGEMENT LUNETTES:', url, 'scaleOffset:', scaleOffset)
     const isGLB = url.includes('.glb') || url.includes('.gltf')
 
     if (isGLB) {
@@ -132,17 +156,12 @@ export const useGlassesScene = () => {
       loader.load(
         url,
         (gltf) => {
-          console.log('✅ GLB CHARGÉ AVEC SUCCÈS:', url)
           attachModel(gltf.scene, scaleOffset)
           draco.dispose()
         },
-        (xhr) => {
-          if (xhr.total > 0) {
-            console.log(`⏳ GLB PROGRESS: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`)
-          }
-        },
+        undefined,
         (error) => {
-          console.error('❌ ERREUR CHARGEMENT GLB:', error)
+          console.error('❌ ERREUR GLB:', error)
           draco.dispose()
         }
       )
@@ -151,47 +170,64 @@ export const useGlassesScene = () => {
       loader.load(
         url,
         (obj) => {
-          console.log('✅ OBJ CHARGÉ AVEC SUCCÈS:', url)
           attachModel(obj, scaleOffset)
         },
-        (xhr) => {
-          if (xhr.total > 0) {
-            console.log(`⏳ OBJ PROGRESS: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`)
-          }
-        },
+        undefined,
         (error) => {
-          console.error('❌ ERREUR CHARGEMENT OBJ:', error)
+          console.error('❌ ERREUR OBJ:', error)
         }
       )
     }
   }
 
   const attachModel = (model: THREE.Object3D, scaleOffset: number) => {
-    console.log('🔄 DEBUT ATTACHEMENT DU MODELE...')
+    /**
+     * Normalisation de base du modèle
+     * On garde une largeur réaliste avant l’ajustement dynamique.
+     */
     const box = new THREE.Box3().setFromObject(model)
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
-    console.log('📐 Dimensions brutes du modèle (X, Y, Z):', size.x, size.y, size.z, 'Centre:', center)
 
-    // Recentrer la géométrie par rapport au groupe pivot local
-    model.position.sub(center)
+    const safeWidth = Math.max(size.x, 0.0001)
+    const autoScale = TARGET_GLASSES_WIDTH / safeWidth
+    model.scale.setScalar(autoScale)
 
-    // Forcer l'ordre de rendu pour l'occlusion (l'occluteur passe d'abord sans écrire la couleur)
+    // Recalcul de la boîte après mise à l’échelle
+    box.setFromObject(model)
+    box.getSize(size)
+    box.getCenter(center)
+
+    /**
+     * Recentrage sur le pont du nez
+     */
+    model.position.x = -center.x
+    model.position.y = -center.y
+
+    /**
+     * Petit recul vers le visage
+     */
+    const zOffset = -0.04
+    model.position.z = -box.max.z + zOffset
+
     model.traverse((c: any) => {
       if (c instanceof THREE.Mesh) {
         c.renderOrder = 1
+        if (c.material) c.material.side = THREE.DoubleSide
       }
     })
 
     const pivot = new THREE.Group()
     pivot.add(model)
 
-    const finalScale = calibration.scale * scaleOffset
-    console.log('⚖️ Echelle finale appliquée:', finalScale)
-    pivot.scale.setScalar(finalScale)
-    
+    /**
+     * Ici on applique seulement l’offset de fichier.
+     * L’échelle liée à la distance sera faite dans updatePose().
+     */
+    pivot.scale.setScalar(scaleOffset)
+
     pivot.position.set(
-      0,
+      calibration.positionX,
       calibration.positionY,
       calibration.positionZ
     )
@@ -204,7 +240,6 @@ export const useGlassesScene = () => {
 
     glassesModel.value = pivot
     glassesContainer.add(pivot)
-    console.log('✅ MODELE LUNETTE AJOUTE AU CONTENEUR AVEC SUCCES!')
   }
 
   const renderFrame = () => {
@@ -216,20 +251,62 @@ export const useGlassesScene = () => {
   const updatePose = (matrixArray: number[]) => {
     const matrix = new THREE.Matrix4().fromArray(matrixArray)
 
+    // MediaPipe -> Three.js
+    matrix.transpose()
+
     const pos = new THREE.Vector3()
     const quat = new THREE.Quaternion()
     const scale = new THREE.Vector3()
 
     matrix.decompose(pos, quat, scale)
 
-    // Applique la transformation de MediaPipe au conteneur principal des lunettes
+    /**
+     * Position + rotation du visage
+     */
     glassesContainer.position.copy(pos)
     glassesContainer.quaternion.copy(quat)
 
-    // 💡 OPTIMISATION : Si l'occluteur facial est chargé, appliquez-lui la même matrice pour cacher les branches derrière les oreilles !
+    /**
+     * Ajustement dynamique de l’échelle selon :
+     * - la profondeur du visage (pos.z)
+     * - la scale renvoyée par la matrice
+     *
+     * Quand tu te rapproches de la caméra => lunettes plus grandes
+     * Quand tu t’éloignes => lunettes plus petites
+     */
+    const depth = Math.max(0.15, Math.abs(pos.z))
+    const depthScale = THREE.MathUtils.clamp(
+      REFERENCE_DEPTH / depth,
+      DYNAMIC_SCALE_MIN,
+      DYNAMIC_SCALE_MAX
+    )
+
+    const matrixScale = (scale.x + scale.y + scale.z) / 3
+    const safeMatrixScale = Number.isFinite(matrixScale) && matrixScale > 0.01
+      ? matrixScale
+      : 1
+
+    const targetScale = THREE.MathUtils.clamp(
+      (safeMatrixScale * 0.45 + depthScale * 0.55) * calibration.scale,
+      DYNAMIC_SCALE_MIN,
+      DYNAMIC_SCALE_MAX
+    )
+
+    smoothedDynamicScale = THREE.MathUtils.lerp(
+      smoothedDynamicScale,
+      targetScale,
+      DYNAMIC_SCALE_LERP
+    )
+
+    glassesContainer.scale.setScalar(smoothedDynamicScale)
+
+    /**
+     * Occluteur facial suit aussi la pose
+     */
     if (faceOccluder.value) {
       faceOccluder.value.position.copy(pos)
       faceOccluder.value.quaternion.copy(quat)
+      faceOccluder.value.scale.setScalar(smoothedDynamicScale)
     }
   }
 
