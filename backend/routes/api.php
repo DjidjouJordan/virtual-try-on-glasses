@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\AdminController;
+<<<<<<< Updated upstream
+=======
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CommandeController;
+>>>>>>> Stashed changes
 use App\Http\Controllers\FavoriController;
 use App\Http\Controllers\MontureController;
 use App\Http\Controllers\ProfileController;
@@ -14,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+<<<<<<< Updated upstream
 Route::prefix('auth')->group(function () {
 
     // REGISTER SIMPLE (PASSWORD OBLIGATOIRE)
@@ -51,6 +57,13 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/montures', [MontureController::class, 'index']);
+=======
+// ─── Webhook MTN MoMo (public, appelé par MTN) ──────────────────────────────
+Route::post('/webhooks/mtn', [CommandeController::class, 'webhook']);
+
+// ─── Catalogue (public) ─────────────────────────────────────────────────────
+Route::get('/montures',      [MontureController::class, 'index']);
+>>>>>>> Stashed changes
 Route::get('/montures/{monture}', [MontureController::class, 'show']);
 
 /*
@@ -69,11 +82,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/snapshots', [SnapshotController::class, 'store']);
     Route::delete('/snapshots/{snapshot}', [SnapshotController::class, 'destroy']);
 
+<<<<<<< Updated upstream
     /*
     |--------------------------------------------------------------------------
     | ADMIN ONLY
     |--------------------------------------------------------------------------
     */
+=======
+    // Commandes + Paiement MTN MoMo
+    Route::get('/commandes',                       [CommandeController::class, 'index']);
+    Route::post('/commandes',                      [CommandeController::class, 'store']);
+    Route::get('/commandes/{commande}/status',     [CommandeController::class, 'status']);
+
+    // ─── Admin uniquement ───────────────────────────────────────────────────
+>>>>>>> Stashed changes
     Route::middleware('can:admin')->group(function () {
 
         Route::get('/admin/stats', [AdminController::class, 'stats']);

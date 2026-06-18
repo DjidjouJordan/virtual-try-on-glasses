@@ -54,10 +54,20 @@ class Client extends Model
         return $this->hasMany(Snapshot::class);
     }
 
+<<<<<<< Updated upstream
     /**
      * Mesure et enregistre l'écart pupillaire
      */
     public function mesurerPD(float $ecartMm): bool
+=======
+    public function commandes(): HasMany
+    {
+        return $this->hasMany(Commande::class);
+    }
+
+    /** mesurerPD() — enregistre l'écart pupillaire mesuré */
+    public function mesurerPD(float $ecartMm): void
+>>>>>>> Stashed changes
     {
         return $this->update([
             'ecart_pupillaire' => $ecartMm

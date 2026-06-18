@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useCartStore } from '~/stores/cartStore'
+import { useAuthStore } from '~/stores/authStore'
+
 definePageMeta({ middleware: 'auth' })
 
 const cartStore = useCartStore()
@@ -7,10 +10,12 @@ const auth = useAuthStore()
 const cartItems = computed(() => cartStore.items)
 const cartTotal = computed(() => cartStore.total)
 
-const selectedPayment = ref<'momo' | 'orange'>('momo')
+const selectedPayment = ref<'mtn' | 'orange'>('mtn')
 const phoneNumber = ref('')
 const isConfirming = ref(false)
 const payError = ref('')
+const payStatus = ref<'idle' | 'pending' | 'success' | 'failed'>('idle')
+const commandeId = ref<string | null>(null)
 
 const deliveryFee = computed(() => cartTotal.value >= 100000 ? 0 : 2500)
 const totalToPay = computed(() => cartTotal.value + deliveryFee.value)
@@ -19,29 +24,63 @@ function formatPrice(prix: number): string {
   return prix.toLocaleString('fr-FR') + ' FCFA'
 }
 
+// ── Polling du statut MTN toutes les 3 secondes ──────────────────────────────
+let pollInterval: ReturnType<typeof setInterval> | null = null
+
+function startPolling(id: string) {
+  pollInterval = setInterval(async () => {
+    const { data } = await useFetch<{ statut: string }>(`/api/commandes/${id}/status`, {
+      baseURL: 'http://localhost:8000',
+      headers: { Authorization: `Bearer ${auth.token}` },
+    })
+    const statut = data.value?.statut
+    if (statut === 'payee') {
+      stopPolling()
+      payStatus.value = 'success'
+      cartStore.clear()
+      setTimeout(() => navigateTo('/profile'), 2000)
+    } else if (statut === 'echouee' || statut === 'annulee') {
+      stopPolling()
+      payStatus.value = 'failed'
+      payError.value = 'Paiement refusé ou expiré. Réessayez.'
+      isConfirming.value = false
+    }
+  }, 3000)
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
+}
+
 async function handlePay() {
   if (!phoneNumber.value || phoneNumber.value.length < 9) return
   payError.value = ''
   isConfirming.value = true
+  payStatus.value = 'pending'
+
   try {
-    await useFetch('/api/commandes', {
+    const { data, error } = await useFetch<{ commande_id: string }>('/api/commandes', {
       method: 'POST',
       baseURL: 'http://localhost:8000',
       headers: { Authorization: `Bearer ${auth.token}` },
       body: {
         methode_paiement: selectedPayment.value,
-        telephone: `+237${phoneNumber.value}`,
+        telephone: `237${phoneNumber.value}`,
         montant_total: totalToPay.value,
         articles: cartStore.items.map(i => ({ monture_id: i.monture.id, quantity: i.quantity })),
       },
     })
-    cartStore.clear()
-    await navigateTo('/catalog')
-  } catch {
-    payError.value = 'Le paiement a échoué. Vérifiez votre numéro et réessayez.'
+    if (error.value) throw error.value
+    commandeId.value = data.value!.commande_id
+    startPolling(commandeId.value)
+  } catch (e: any) {
+    payError.value = e?.data?.message ?? 'Impossible de contacter le service de paiement.'
+    payStatus.value = 'failed'
     isConfirming.value = false
   }
 }
+
+onUnmounted(() => stopPolling())
 </script>
 
 <template>
@@ -126,19 +165,29 @@ async function handlePay() {
             </div>
           </div>
 
-          <!-- Pay error -->
+          <!-- Erreur paiement -->
           <div v-if="payError" class="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
             <UIcon name="i-lucide-circle-alert" class="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <p class="text-sm text-red-600 font-medium">{{ payError }}</p>
           </div>
 
-          <!-- Confirmation status -->
-          <div v-if="isConfirming" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <!-- Succès -->
+          <div v-if="payStatus === 'success'" class="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-start gap-3">
+            <UIcon name="i-lucide-check-circle" class="w-6 h-6 text-green-500 shrink-0 mt-0.5" />
+            <div>
+              <p class="text-sm font-bold text-green-800">Paiement confirmé !</p>
+              <p class="text-xs text-green-600 mt-1">Votre commande a été enregistrée. Redirection...</p>
+            </div>
+          </div>
+
+          <!-- En attente MTN -->
+          <div v-if="payStatus === 'pending'" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
             <UIcon name="i-lucide-loader" class="w-5 h-5 text-amber-500 animate-spin shrink-0 mt-0.5" />
             <div>
-              <p class="text-sm font-bold text-amber-800">En attente de confirmation...</p>
+              <p class="text-sm font-bold text-amber-800">Prompt USSD envoyé sur ton téléphone</p>
               <p class="text-xs text-amber-600 mt-1">
-                Veuillez composer le <strong>#126#</strong> ou consulter l'application MoMo si vous ne recevez pas le prompt USSD.
+                Accepte la demande de paiement MTN MoMo sur <strong>{{ phoneNumber }}</strong>.<br>
+                Si tu ne reçois rien, compose le <strong>*126#</strong>.
               </p>
             </div>
           </div>
