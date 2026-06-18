@@ -3,21 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
-    protected $primaryKey = 'user_id';
+    protected $primaryKey = 'id';
 
     public $incrementing = false;
 
     protected $keyType = 'string';
 
     protected $fillable = [
+        'id',
         'user_id',
         'ecart_pupillaire',
         'forme_visage'
@@ -35,7 +37,7 @@ class Client extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -43,7 +45,7 @@ class Client extends Model
      */
     public function favoris(): HasMany
     {
-        return $this->hasMany(Favori::class);
+        return $this->hasMany(Favori::class, 'client_id');
     }
 
     /**
@@ -51,7 +53,10 @@ class Client extends Model
      */
     public function snapshots(): HasMany
     {
-        return $this->hasMany(Snapshot::class);
+        return $this->hasMany(
+            Snapshot::class,
+            'client_id'
+        );
     }
 
     /**

@@ -9,17 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('clients', function (Blueprint $table) {
+            $table->uuid('id')->primary();
 
+            // Ajout de ->unique() pour s'assurer qu'un utilisateur n'a qu'un seul profil client (1-to-1)
             $table->foreignUuid('user_id')
-                ->primary();
-
-            $table->foreign('user_id')
-                ->references('id')
-                ->on('users')
+                ->unique() 
+                ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->decimal('ecart_pupillaire', 5, 2)
-                ->nullable();
+            $table->decimal('ecart_pupillaire', 5, 2)->nullable();
 
             $table->enum('forme_visage', [
                 'ovale',
