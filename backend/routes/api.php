@@ -37,7 +37,7 @@ Route::prefix('auth')->group(function () {
 
         Route::post('/logout', [AuthController::class, 'logout']);
 
-        Route::put('/profile', [AuthController::class, 'updateProfile']);
+        // Route::put('/profile', [AuthController::class, 'updateProfile']);
 
         Route::post('/password/change', [AuthController::class, 'changePassword']);
 
@@ -65,9 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('favoris', FavoriController::class)->only(['index', 'store', 'destroy']);
 
-    Route::get('/snapshots', [SnapshotController::class, 'index']);
-    Route::post('/snapshots', [SnapshotController::class, 'store']);
-    Route::delete('/snapshots/{snapshot}', [SnapshotController::class, 'destroy']);
+    Route::apiResource('snapshots', SnapshotController::class)->only(['index', 'store', 'destroy']);
+
+    Route::delete('/snapshots/media/{media}', [SnapshotController::class, 'deleteImage']);
 
     /*
     |--------------------------------------------------------------------------

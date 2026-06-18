@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('snapshots', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('client_id')->constrained('clients')->cascadeOnDelete();
-            $table->string('image_url');
+            // $table->string('image_url');
             $table->timestamp('date_capture')->useCurrent();
             $table->integer('new_attr')->default(0);
             $table->timestamps();

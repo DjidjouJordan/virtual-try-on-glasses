@@ -33,6 +33,8 @@ class User extends Authenticatable implements HasMedia
         ];
     }
 
+    protected $appends = ['avatar_url'];
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('avatar')->singleFile();

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/authStore'
+
+import { useCartStore } from '~/stores/cartStore'
+
 definePageMeta({ middleware: 'auth' })
 
 const cartStore = useCartStore()
@@ -59,17 +63,15 @@ async function handlePay() {
 
     <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-8">
       <div class="md:grid md:grid-cols-3 md:gap-8">
-
         <!-- ── LEFT: Payment form ── -->
         <div class="md:col-span-2 space-y-6">
-
           <!-- Payment Method -->
           <div>
             <p class="text-xs font-extrabold text-gray-700 tracking-widest mb-3">MÉTHODE DE PAIEMENT</p>
             <div class="grid grid-cols-2 gap-3">
               <button
                 class="relative border-2 rounded-2xl p-4 flex flex-col items-center gap-2 transition-all"
-                :class="selectedPayment === 'momo' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'"
+                :class="selectedPayment === 'momo' ? 'border-yellow-400 bg-yellow-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'"
                 @click="selectedPayment = 'momo'"
               >
                 <div class="w-12 h-12 rounded-xl bg-yellow-400 flex items-center justify-center">
@@ -78,9 +80,9 @@ async function handlePay() {
                 <span class="text-sm font-bold text-gray-700">MTN MoMo</span>
                 <div
                   v-if="selectedPayment === 'momo'"
-                  class="absolute top-2 right-2 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center"
+                  class="absolute top-2 right-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center"
                 >
-                  <UIcon name="i-lucide-check" class="w-3 h-3 text-white" />
+                  <UIcon name="i-lucide-check" class="w-3 h-3 textwhite" />
                 </div>
               </button>
 
@@ -106,24 +108,46 @@ async function handlePay() {
           <!-- Phone -->
           <div>
             <label class="text-xs font-extrabold text-gray-700 tracking-widest">NUMÉRO DE TÉLÉPHONE</label>
-            <div class="mt-2 flex items-center gap-2 border-2 rounded-xl px-3 py-3 bg-gray-50 transition-colors"
-              :class="phoneNumber.length >= 9 ? 'border-blue-400' : 'border-gray-200 focus-within:border-blue-300'"
+            
+            <!--
+                <span class="text-sm font-bold text-gray-500">+237</span>
+                <div class="w-px h-5 bg-gray-200" />
+                <input
+                  v-model="phoneNumber"
+                  type="tel"
+                  placeholder="6XX XXX XXX"
+                  class="flex-1 bg-transparent text-sm text-gray-800 outline-none font-medium tracking-widest"
+                  maxlength="9"
+                />
+                <UIcon
+                  v-if="phoneNumber.length >= 9"
+                  name="i-lucide-check-circle"
+                  class="w-4 h-4 text-green-500 shrink-0"
+                />
+            -->
+            <UInput
+              v-model="phoneNumber"
+              type="tel"
+              placeholder="6XX XXX XXX"
+              maxlength="9"
+              class="font-medium tracking-widest"
+              :ui="{ base: 'text-sm text-center text-gray-800' }"
             >
-              <span class="text-sm font-bold text-gray-500">+237</span>
-              <div class="w-px h-5 bg-gray-200" />
-              <input
-                v-model="phoneNumber"
-                type="tel"
-                placeholder="6XX XXX XXX"
-                class="flex-1 bg-transparent text-sm text-gray-800 outline-none font-medium tracking-widest"
-                maxlength="9"
-              />
-              <UIcon
-                v-if="phoneNumber.length >= 9"
-                name="i-lucide-check-circle"
-                class="w-4 h-4 text-green-500 shrink-0"
-              />
-            </div>
+              <template #leading>
+                <div class="flex items-center gap-2 text-sm font-bold text-gray-500">
+                  <span>+237</span>
+                  <div class="w-px h-5 bg-gray-200" />
+                </div>
+              </template>
+
+              <template #trailing>
+                <UIcon
+                  v-if="phoneNumber.length >= 9"
+                  name="i-lucide-check-circle"
+                  class="w-4 h-4 text-green-500 shrink-0"
+                />
+              </template>
+            </UInput>
           </div>
 
           <!-- Pay error -->

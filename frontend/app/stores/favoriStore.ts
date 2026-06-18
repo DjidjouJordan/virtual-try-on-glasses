@@ -28,31 +28,38 @@ export const useFavoriStore = defineStore('favori', {
       const auth = useAuthStore()
       if (!auth.isAuthenticated) return
 
-      const { data, error } = await useFetch<Favori[]>('/api/favoris', {
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${auth.token}` },
-      })
-
-      if (error.value) return
-      this.favoris = data.value ?? []
+      try {
+        const data = await $fetch<Favori[]>('http://localhost:8000/api/favoris', {
+          headers: { 
+            Authorization: `Bearer ${auth.token}`,
+            Accept: 'application/json'
+          },
+        })
+        this.favoris = data ?? []
+      } catch (error) {
+        console.error('Erreur lors de la récupération des favoris:', error)
+      }
     },
 
     async add(montureId: string) {
       const auth = useAuthStore()
 
-      const { data, error } = await useFetch<Favori>('/api/favoris', {
-        method: 'POST',
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${auth.token}` },
-        body: { monture_id: montureId },
-      })
+      try {
+        const data = await $fetch<Favori>('http://localhost:8000/api/favoris', {
+          method: 'POST',
+          headers: { 
+            Authorization: `Bearer ${auth.token}`,
+            Accept: 'application/json'
+          },
+          body: { monture_id: montureId },
+        })
 
-      if (error.value) throw error.value
-
-      // update optimiste
-      if (data.value) this.favoris.push(data.value)
-
-      return data.value
+        if (data) this.favoris.push(data)
+        return data
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du favori:', error)
+        throw error
+      }
     },
 
     async remove(montureId: string) {
@@ -61,19 +68,29 @@ export const useFavoriStore = defineStore('favori', {
       const fav = this.favoris.find(f => f.monture_id === montureId)
       if (!fav) return
 
-      await useFetch(`/api/favoris/${fav.id}`, {
-        method: 'DELETE',
-        baseURL: 'http://localhost:8000',
-        headers: { Authorization: `Bearer ${auth.token}` },
-      })
+      try {
+        await $fetch(`http://localhost:8000/api/favoris/${fav.id}`, {
+          method: 'DELETE',
+          headers: { 
+            Authorization: `Bearer ${auth.token}`,
+            Accept: 'application/json'
+          },
+        })
 
-      this.favoris = this.favoris.filter(f => f.id !== fav.id)
+        // Mise à jour de l'état local filtré par l'ID du favori
+        this.favoris = this.favoris.filter(f => f.id !== fav.id)
+      } catch (error) {
+        console.error('Erreur lors de la suppression du favori:', error)
+        throw error
+      }
     },
 
     async toggle(montureId: string) {
-      return this.isFavori(montureId)
-        ? await this.remove(montureId)
-        : await this.add(montureId)
+      if (this.isFavori(montureId)) {
+        await this.remove(montureId)
+      } else {
+        await this.add(montureId)
+      }
     },
   },
 })

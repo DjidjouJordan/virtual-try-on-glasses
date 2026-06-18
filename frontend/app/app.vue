@@ -62,7 +62,7 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/">
+        <NuxtLink to="/catalog">
           <AppLogo class="w-auto h-6 shrink-0" />
         </NuxtLink>
       </template>
@@ -101,7 +101,7 @@ useSeoMeta({
 
       <template #right>
         <p class="text-sm text-muted">
-          Virtual Try-On • Three.js • MediaPipe
+          Nous ne détenons aucun droit sur les montures présentes dans cette plateforme
         </p>
       </template>
     </UFooter>
