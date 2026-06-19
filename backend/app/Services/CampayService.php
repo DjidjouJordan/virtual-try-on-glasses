@@ -26,7 +26,8 @@ class CampayService
         string $externalReference
     ): array {
 
-        $response = Http::withHeaders([
+        // AJOUT DE ->withoutVerifying() POUR CONTOURNER L'ERREUR SSL LOCALE
+        $response = Http::withoutVerifying()->withHeaders([
             'Authorization' => 'Token '.$this->token,
             'Content-Type' => 'application/json',
         ])->post($this->baseUrl.'/collect/', [
@@ -45,7 +46,8 @@ class CampayService
      */
     public function transactionStatus(string $reference): array
     {
-        $response = Http::withHeaders([
+        // AJOUT DE ->withoutVerifying() ICI AUSSI
+        $response = Http::withoutVerifying()->withHeaders([
             'Authorization' => 'Token '.$this->token,
             'Content-Type' => 'application/json',
         ])->get(
