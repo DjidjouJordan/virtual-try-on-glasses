@@ -10,23 +10,46 @@ use Illuminate\Http\JsonResponse;
 
 class AdminController extends Controller
 {
-    /** GET /api/admin/stats  — consulterStats() */
+    /**
+     * Dashboard
+     * GET /api/admin/stats
+     */
     public function stats(): JsonResponse
     {
         return response()->json([
-            'total_users'     => User::count(),
-            'total_clients'   => Client::count(),
-            'total_montures'  => Monture::count(),
+            'total_users' => User::count(),
+
+            'total_clients' => Client::count(),
+
+            'total_montures' => Monture::count(),
+
             'total_snapshots' => Snapshot::count(),
-            'montures_recent' => Monture::with('modele3D')->latest()->take(5)->get(),
+
+            'recent_montures' => Monture::with('modele3D')
+                ->latest()
+                ->take(5)
+                ->get(),
+
+            'recent_snapshots' => Snapshot::with('media')
+                ->latest()
+                ->take(5)
+                ->get(),
         ]);
     }
 
-    /** GET /api/admin/montures  — gererMonture() */
+    /**
+     * Liste paginée des montures
+     * GET /api/admin/montures
+     */
     public function montures(): JsonResponse
     {
-        return response()->json(
-            Monture::with('modele3D')->latest()->paginate(20)
-        );
+        $montures = Monture::with([
+            'modele3D',
+            'categorie'
+        ])
+        ->latest()
+        ->paginate(20);
+
+        return response()->json($montures);
     }
 }
