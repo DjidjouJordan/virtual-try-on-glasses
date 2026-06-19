@@ -22,7 +22,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Wayfarer Classic',
                 'marque' => 'Ray-Ban Style',
-                'prix' => 129.99,
+                'prix' => 15000.99,
                 'description' => 'Monture iconique intemporelle.',
                 'categorie' => '',
                 'couleur' => 'bleue',
@@ -34,7 +34,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Star Sunglasses',
                 'marque' => '',
-                'prix' => 19.99,
+                'prix' => 17889.99,
                 'description' => 'Red star-shaped sunglasses.',
                 'categorie' => 'Lunettes de soleil',
                 'couleur' => 'rouge',
@@ -46,7 +46,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Chrome Bat sunglasses',
                 'marque' => '',
-                'prix' => 129.99,
+                'prix' => 12009.99,
                 'description' => 'Lunettes de soleil au design audacieux inspiré d\'une chauve-souris avec une  finition chromée',
                 'categorie' => 'Lunettes de soleil',
                 'couleur' => 'Chrome',
@@ -70,7 +70,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Heart- Glasses',
                 'marque' => '',
-                'prix' => 129.99,
+                'prix' => 12900.99,
                 'description' => 'Heart-shaped glasses by jhowars65',
                 'categorie' => 'Lunettes de soleil',
                 'couleur' => 'blanche',
@@ -94,7 +94,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Stylish Modern High Quality Sunglasses',
                 'marque' => '',
-                'prix' => 129.99,
+                'prix' => 12239.99,
                 'description' => 'Lunettes de soleil élégantes et modernes de haute qualité. Modèle 3D créé par noob-3d.',
                 'categorie' => 'Lunettes de soleil',
                 'couleur' => '',
@@ -106,7 +106,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Eyeglasses',
                 'marque' => 'ethan_garden',
-                'prix' => 129.99,
+                'prix' => 12129.99,
                 'description' => 'Lunettes de vue classiques',
                 'categorie' => 'Lunettes de vue',
                 'couleur' => 'Noir / Métal',
@@ -118,7 +118,7 @@ class MontureSeeder extends Seeder
             [
                 'nom' => 'Eyeglasses (Specs)',
                 'marque' => '',
-                'prix' => 129.99,
+                'prix' => 19829.99,
                 'description' => 'Modèle 3D détaillé de lunettes de vue (Specs) créé par Pratham.Bhatnagar.',
                 'categorie' => 'Lunettes de vue',
                 'couleur' => 'arc-en-ciel',

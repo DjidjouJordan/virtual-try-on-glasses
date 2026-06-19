@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/authStore'
-
 import { useCartStore } from '~/stores/cartStore'
 
 definePageMeta({ middleware: 'auth' })
@@ -19,39 +18,118 @@ const payError = ref('')
 const deliveryFee = computed(() => cartTotal.value >= 100000 ? 0 : 2500)
 const totalToPay = computed(() => cartTotal.value + deliveryFee.value)
 
+// Variable pour stocker l'intervalle de vérification du statut
+let pollingInterval: NodeJS.Timeout | null = null
+
 function formatPrice(prix: number): string {
   return prix.toLocaleString('fr-FR') + ' FCFA'
 }
 
+// Nettoyage de l'intervalle si l'utilisateur quitte la page brusquement
+onUnmounted(() => {
+  if (pollingInterval) clearInterval(pollingInterval)
+})
+
 async function handlePay() {
   if (!phoneNumber.value || phoneNumber.value.length < 9) return
+  
   payError.value = ''
   isConfirming.value = true
+
+  // ⚠️ CORRECTION SÉCURITÉ & FORMAT : Le regex Laravel attend '2376XXXXXXXX' (SANS le '+')
+  const formattedPhone = `237${phoneNumber.value}`
+
   try {
-    await useFetch('/api/commandes', {
+    // Note : On utilise $fetch à la place de useFetch car nous sommes dans une fonction/bouton.
+    const response = await $fetch<{
+      status: string
+      message: string
+      campay_reference: string
+    }>('/api/payments/initiate', {
       method: 'POST',
       baseURL: 'http://localhost:8000',
-      headers: { Authorization: `Bearer ${auth.token}` },
+      headers: { 
+        Authorization: `Bearer ${auth.token}`,
+        Accept: 'application/json'
+      },
       body: {
-        methode_paiement: selectedPayment.value,
-        telephone: `+237${phoneNumber.value}`,
-        montant_total: totalToPay.value,
-        articles: cartStore.items.map(i => ({ monture_id: i.monture.id, quantity: i.quantity })),
+        phone_number: formattedPhone,
+        // On envoie uniquement les IDs et quantités, Laravel recalculera le prix sécurisé en DB
+        items: cartStore.items.map(i => ({ 
+          monture_id: i.monture.id, 
+          quantity: i.quantity 
+        })),
       },
     })
-    cartStore.clear()
-    await navigateTo('/catalog')
-  } catch {
-    payError.value = 'Le paiement a échoué. Vérifiez votre numéro et réessayez.'
+
+    if (response.status === 'success' && response.campay_reference) {
+      // Étape suivante : Lancer la vérification automatique en tâche de fond
+      startStatusPolling(response.campay_reference)
+    } else {
+      throw new Error(response.message || 'Impossible d\'initialiser le paiement.')
+    }
+
+  } catch (error: any) {
+    payError.value = error.data?.message || 'Le paiement a échoué. Vérifiez votre numéro et réessayez.'
     isConfirming.value = false
   }
+}
+
+/**
+ * Lance une vérification automatique auprès du serveur toutes les 4 secondes
+ */
+function startStatusPolling(campayReference: string) {
+  if (pollingInterval) clearInterval(pollingInterval)
+
+  let attempts = 0
+  const maxAttempts = 20 // 20 tentatives * 4 secondes = 80 secondes max d'attente pour le code PIN
+
+  pollingInterval = setInterval(async () => {
+    attempts++
+
+    if (attempts > maxAttempts) {
+      if (pollingInterval) clearInterval(pollingInterval)
+      payError.value = 'Délai d\'attente dépassé. Si vous avez été débité, contactez le support.'
+      isConfirming.value = false
+      return
+    }
+
+    try {
+      const data = await $fetch<{ 
+        payment_status: 'pending' | 'success' | 'failed'
+        order_status: string 
+      }>(`/api/payments/status/${campayReference}`, {
+        baseURL: 'http://localhost:8000',
+        headers: { Authorization: `Bearer ${auth.token}` }
+      })
+
+      // Si le paiement est validé côté opérateur (MTN/Orange)
+      if (data.payment_status === 'successful') {
+        if (pollingInterval) clearInterval(pollingInterval)
+
+        cartStore.clear() // On vide proprement le panier Pinia
+        isConfirming.value = false
+
+        // Redirection vers le catalogue (ou une page /success de ton choix)
+        await navigateTo('/catalog')
+      }
+      // Si l'utilisateur a annulé ou solde insuffisant
+      else if (data.payment_status === 'failed') {
+        if (pollingInterval) clearInterval(pollingInterval)
+        payError.value = 'La transaction a été rejetée ou a échoué.'
+        isConfirming.value = false
+      }
+    } catch (err) {
+      // En cas d'erreur réseau intermittente, on ne coupe pas le processus, on attend le prochain cycle
+      console.warn('Vérification du statut en cours...', err)
+    }
+  }, 4000) // 4 secondes d'intervalle
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-white">
-
-    <!-- Top Bar -->
+<!-- Top Bar -->
     <div class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 md:px-8 py-3">
       <div class="max-w-7xl mx-auto flex items-center gap-3">
         <NuxtLink to="/cart" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">

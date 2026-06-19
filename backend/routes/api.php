@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\FavoriController;
 use App\Http\Controllers\MontureController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SnapshotController;
 use Illuminate\Support\Facades\Route;
+use App\Services\CampayService;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -85,3 +88,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/montures/{monture}/media/{media}', [MontureController::class, 'deleteMedia']);
     });
 });
+
+
+// Routes sécurisées nécessitant que l'utilisateur Nuxt soit connecté via Sanctum
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
+    Route::get('/payments/status/{reference}', [PaymentController::class, 'status']);
+});
+
+// Le Webhook DOIT être public car l'IPN de CamPay n'a pas accès à tes tokens de session Sanctum
+Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
