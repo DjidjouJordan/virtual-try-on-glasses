@@ -26,7 +26,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/catalog': { ssr: false },
     '/try-on': { ssr: false },
-    '/storage/**': { proxy: 'http://localhost:8000/storage/**' }
+    '/storage/**': { proxy: `${process.env.NUXT_PUBLIC_API_BASE?.replace('/api', '') ?? 'http://localhost:8000'}/storage/**` }
   },
   devServer: {
     https: true,
@@ -118,7 +118,7 @@ export default defineNuxtConfig({
         },
         {
           // Images montures depuis le backend
-          urlPattern: /^http:\/\/localhost:8000\/storage\/.*/,
+          urlPattern: /\/storage\/.*/,
           handler: 'StaleWhileRevalidate' as const,
           options: {
             cacheName: 'dpglasses-images',
