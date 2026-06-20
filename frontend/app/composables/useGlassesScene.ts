@@ -34,17 +34,19 @@ export const useGlassesScene = () => {
    * Si le modèle reste trop grand, baisse légèrement cette valeur
    * (ex: 0.10 à 0.12)
    */
-  const TARGET_GLASSES_WIDTH = 0.025
+  const TARGET_GLASSES_WIDTH = 0.016
 
   /**
    * Réglages dynamiques selon la distance du visage
    */
   const REFERENCE_DEPTH = 0.55
-  const DYNAMIC_SCALE_MIN = 0.55
-  const DYNAMIC_SCALE_MAX = 1.8
-  const DYNAMIC_SCALE_LERP = 0.18
+  const DYNAMIC_SCALE_MIN = 0.4
+  const DYNAMIC_SCALE_MAX = 1.6
+  const DYNAMIC_SCALE_LERP = 0.08
 
   let smoothedDynamicScale = 1
+  const smoothedPos = new THREE.Vector3()
+  const smoothedQuat = new THREE.Quaternion()
 
   const initScene = (canvas: HTMLCanvasElement) => {
     const width = window.innerWidth
@@ -199,16 +201,12 @@ export const useGlassesScene = () => {
     box.getSize(size)
     box.getCenter(center)
 
-    /**
-     * Recentrage sur le pont du nez
-     */
+    // Recentrage horizontal + décalage vertical vers les yeux
     model.position.x = -center.x
-    model.position.y = -center.y
+    model.position.y = -center.y + size.y * 0.1
 
-    /**
-     * Petit recul vers le visage
-     */
-    const zOffset = -0.04
+    // Plaquage contre le visage
+    const zOffset = -0.02
     model.position.z = -box.max.z + zOffset
 
     model.traverse((c: any) => {
@@ -261,21 +259,14 @@ export const useGlassesScene = () => {
 
     matrix.decompose(pos, quat, scale)
 
-    /**
-     * Position + rotation du visage
-     */
-    glassesContainer.position.copy(pos)
-    glassesContainer.quaternion.copy(quat)
+    // Lissage position + rotation pour réduire le tremblement
+    smoothedPos.lerp(pos, 0.25)
+    smoothedQuat.slerp(quat, 0.25)
 
-    /**
-     * Ajustement dynamique de l’échelle selon :
-     * - la profondeur du visage (pos.z)
-     * - la scale renvoyée par la matrice
-     *
-     * Quand tu te rapproches de la caméra => lunettes plus grandes
-     * Quand tu t’éloignes => lunettes plus petites
-     */
-    const depth = Math.max(0.15, Math.abs(pos.z))
+    glassesContainer.position.copy(smoothedPos)
+    glassesContainer.quaternion.copy(smoothedQuat)
+
+    const depth = Math.max(0.15, Math.abs(smoothedPos.z))
     const depthScale = THREE.MathUtils.clamp(
       REFERENCE_DEPTH / depth,
       DYNAMIC_SCALE_MIN,
@@ -301,12 +292,9 @@ export const useGlassesScene = () => {
 
     glassesContainer.scale.setScalar(smoothedDynamicScale)
 
-    /**
-     * Occluteur facial suit aussi la pose
-     */
     if (faceOccluder.value) {
-      faceOccluder.value.position.copy(pos)
-      faceOccluder.value.quaternion.copy(quat)
+      faceOccluder.value.position.copy(smoothedPos)
+      faceOccluder.value.quaternion.copy(smoothedQuat)
       faceOccluder.value.scale.setScalar(smoothedDynamicScale)
     }
   }
