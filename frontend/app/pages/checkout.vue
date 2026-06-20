@@ -47,7 +47,7 @@ async function handlePay() {
       campay_reference: string
     }>('/api/payments/initiate', {
       method: 'POST',
-      baseURL: 'http://localhost:8000',
+      baseURL: useRuntimeConfig().public.apiBase.replace('/api', ''),
       headers: { 
         Authorization: `Bearer ${auth.token}`,
         Accept: 'application/json'
@@ -99,7 +99,7 @@ function startStatusPolling(campayReference: string) {
         payment_status: 'pending' | 'success' | 'failed'
         order_status: string 
       }>(`/api/payments/status/${campayReference}`, {
-        baseURL: 'http://localhost:8000',
+        baseURL: useRuntimeConfig().public.apiBase.replace('/api', ''),
         headers: { Authorization: `Bearer ${auth.token}` }
       })
 

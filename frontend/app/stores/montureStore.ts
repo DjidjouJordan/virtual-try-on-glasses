@@ -55,12 +55,10 @@ export const useMontureStore = defineStore('monture', {
       this.loading = true
 
       try {
+        const config = useRuntimeConfig()
         const { data, error } = await useFetch<any>(
-          '/api/montures',
-          {
-            baseURL: 'http://localhost:8000',
-            query: { page }
-          }
+          `${config.public.apiBase}/montures`,
+          { query: { page } }
         )
 
         if (error.value) throw error.value
@@ -107,9 +105,9 @@ export const useMontureStore = defineStore('monture', {
       this.loading = true
 
       try {
+        const config = useRuntimeConfig()
         const { data, error } = await useFetch<{ data: Monture }>(
-          `/api/montures/${id}`,
-          { baseURL: 'http://localhost:8000' }
+          `${config.public.apiBase}/montures/${id}`
         )
 
         if (error.value) throw error.value

@@ -135,8 +135,9 @@ export const useGlassesScene = () => {
   const loadGlasses = (url?: string, scaleOffset = 1.0) => {
     if (!url || typeof url !== 'string') return
 
-    if (url.startsWith('http://localhost:8000/storage/')) {
-      url = url.replace('http://localhost:8000/storage/', '/storage/')
+    const storageBase = useRuntimeConfig().public.apiBase.replace('/api', '') + '/storage/'
+    if (url.startsWith(storageBase) || url.startsWith('http://localhost:8000/storage/')) {
+      url = url.replace(/^https?:\/\/[^/]+\/storage\//, '/storage/')
     }
 
     if (glassesModel.value) {

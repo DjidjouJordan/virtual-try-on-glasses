@@ -28,8 +28,9 @@ export const useFavoriStore = defineStore('favori', {
       const auth = useAuthStore()
       if (!auth.isAuthenticated) return
 
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const data = await $fetch<Favori[]>('http://localhost:8000/api/favoris', {
+        const data = await $fetch<Favori[]>(`${apiBase}/favoris`, {
           headers: { 
             Authorization: `Bearer ${auth.token}`,
             Accept: 'application/json'
@@ -43,9 +44,10 @@ export const useFavoriStore = defineStore('favori', {
 
     async add(montureId: string) {
       const auth = useAuthStore()
+      const { public: { apiBase } } = useRuntimeConfig()
 
       try {
-        const data = await $fetch<Favori>('http://localhost:8000/api/favoris', {
+        const data = await $fetch<Favori>(`${apiBase}/favoris`, {
           method: 'POST',
           headers: { 
             Authorization: `Bearer ${auth.token}`,
@@ -68,8 +70,9 @@ export const useFavoriStore = defineStore('favori', {
       const fav = this.favoris.find(f => f.monture_id === montureId)
       if (!fav) return
 
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        await $fetch(`http://localhost:8000/api/favoris/${fav.id}`, {
+        await $fetch(`${apiBase}/favoris/${fav.id}`, {
           method: 'DELETE',
           headers: { 
             Authorization: `Bearer ${auth.token}`,

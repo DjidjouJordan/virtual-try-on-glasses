@@ -55,8 +55,9 @@ export const useSnapshotStore = defineStore('snapshot', {
       const auth = useAuthStore()
       if (!auth.isAuthenticated) return
 
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const data = await $fetch<SnapshotApi[]>('http://localhost:8000/api/snapshots', {
+        const data = await $fetch<SnapshotApi[]>(`${apiBase}/snapshots`, {
           headers: { 
             Authorization: `Bearer ${auth.token}`,
             Accept: 'application/json'
@@ -107,12 +108,13 @@ export const useSnapshotStore = defineStore('snapshot', {
        ========================= */
     async generate(canvas: HTMLCanvasElement): Promise<SnapshotImage> {
       const auth = useAuthStore()
-      
+      const { public: { apiBase } } = useRuntimeConfig()
+
       // Extraction immédiate du Base64 pour figer la frame AR de l'utilisateur
       const imageBase64 = canvas.toDataURL('image/png')
 
       try {
-        const data = await $fetch<CreateSnapshotResponse>('http://localhost:8000/api/snapshots', {
+        const data = await $fetch<CreateSnapshotResponse>(`${apiBase}/snapshots`, {
           method: 'POST',
           headers: { 
             Authorization: `Bearer ${auth.token}`,
@@ -167,9 +169,10 @@ export const useSnapshotStore = defineStore('snapshot', {
        ========================= */
     async remove(mediaId: number): Promise<void> {
       const auth = useAuthStore()
+      const { public: { apiBase } } = useRuntimeConfig()
 
       try {
-        await $fetch(`http://localhost:8000/api/snapshots/media/${mediaId}`, {
+        await $fetch(`${apiBase}/snapshots/media/${mediaId}`, {
           method: 'DELETE',
           headers: { 
             Authorization: `Bearer ${auth.token}`,

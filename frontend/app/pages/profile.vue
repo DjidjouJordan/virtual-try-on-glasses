@@ -46,7 +46,7 @@ async function saveProfile() {
     // 1. Envoi au endpoint Laravel profile (Nom, Écart, Forme)
     const { error } = await useFetch('/api/profile', {
       method: 'PUT',
-      baseURL: 'http://localhost:8000',
+      baseURL: useRuntimeConfig().public.apiBase.replace('/api', ''),
       headers: { Authorization: `Bearer ${auth.token}` },
       body: {
         nom: editNom.value,
@@ -258,7 +258,7 @@ onMounted(async () => {
                   <div class="w-full h-32 bg-gradient-to-br from-indigo-50 to-blue-100">
                     <img 
                       v-if="fav.monture.image_url"
-                      :src="fav.monture.image_url.startsWith('http') ? fav.monture.image_url : `http://localhost:8000${fav.monture.image_url}`"
+                      :src="fav.monture.image_url.startsWith('http') ? fav.monture.image_url : `${useRuntimeConfig().public.apiBase.replace('/api', '')}${fav.monture.image_url}`"
                       class="w-full h-full object-cover"
                     >                  </div>
                 </NuxtLink>

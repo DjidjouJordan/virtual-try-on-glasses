@@ -35,15 +35,13 @@ export const useAuthStore = defineStore('auth', {
        REGISTER STEP 1 (CREATE USER)
        ========================= */
     async register(nom: string, email: string, password: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const data = await $fetch<any>('http://localhost:8000/api/auth/register', {
+        const data = await $fetch<any>(`${apiBase}/auth/register`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { nom, email, password }
         })
-
         this.pendingEmail = email
         return data
       } catch (error: any) {
@@ -55,15 +53,13 @@ export const useAuthStore = defineStore('auth', {
        REGISTER STEP 2 (SEND OTP)
        ========================= */
     async sendRegisterOtp(email: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        await $fetch('http://localhost:8000/api/auth/register/otp', {
+        await $fetch(`${apiBase}/auth/register/otp`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { email }
         })
-
         this.pendingEmail = email
       } catch (error: any) {
         throw error
@@ -74,15 +70,13 @@ export const useAuthStore = defineStore('auth', {
        REGISTER STEP 3 (VERIFY OTP)
        ========================= */
     async verifyRegisterOtp(email: string, code: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const data = await $fetch<User>('http://localhost:8000/api/auth/register/verify', {
+        const data = await $fetch<User>(`${apiBase}/auth/register/verify`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { email, code }
         })
-
         this.user = data
         return data
       } catch (error: any) {
@@ -94,18 +88,15 @@ export const useAuthStore = defineStore('auth', {
        LOGIN (PASSWORD ONLY)
        ========================= */
     async login(email: string, password: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const res = await $fetch<any>('http://localhost:8000/api/auth/login', {
+        const res = await $fetch<any>(`${apiBase}/auth/login`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { email, password }
         })
-
         this.user = res.user
         this.token = res.token
-
         this.persist()
         return res
       } catch (error: any) {
@@ -117,12 +108,11 @@ export const useAuthStore = defineStore('auth', {
        RESET PASSWORD OTP
        ========================= */
     async sendResetOtp(email: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        await $fetch('http://localhost:8000/api/auth/password/forgot', {
+        await $fetch(`${apiBase}/auth/password/forgot`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { email }
         })
         this.pendingEmail = email
@@ -132,12 +122,11 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async resetPassword(email: string, code: string, password: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        await $fetch('http://localhost:8000/api/auth/password/reset', {
+        await $fetch(`${apiBase}/auth/password/reset`, {
           method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
+          headers: { Accept: 'application/json' },
           body: { email, code, password }
         })
       } catch (error: any) {
@@ -146,11 +135,12 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /* =========================
-       UPDATE PROFILE (Maintenant lié à ProfileController)
+       UPDATE PROFILE
        ========================= */
     async updateProfile(payload: any) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        const data = await $fetch<User>('http://localhost:8000/api/profile', {
+        const data = await $fetch<User>(`${apiBase}/profile`, {
           method: 'PUT',
           headers: {
             Authorization: `Bearer ${this.token}`,
@@ -158,13 +148,8 @@ export const useAuthStore = defineStore('auth', {
           },
           body: payload
         })
-
-        // On assigne directement data car le contrôleur retourne l'objet User
         this.user = data
-        
-        // On sauvegarde dans le localStorage pour le rafraîchissement
         this.persist()
-        
         return data
       } catch (error: any) {
         throw error
@@ -175,8 +160,9 @@ export const useAuthStore = defineStore('auth', {
        CHANGE PASSWORD (LOGGED IN)
        ========================= */
     async changePassword(old_password: string, new_password: string) {
+      const { public: { apiBase } } = useRuntimeConfig()
       try {
-        await $fetch('http://localhost:8000/api/auth/password/change', {
+        await $fetch(`${apiBase}/auth/password/change`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${this.token}`,
@@ -193,9 +179,10 @@ export const useAuthStore = defineStore('auth', {
        LOGOUT
        ========================= */
     async logout() {
+      const { public: { apiBase } } = useRuntimeConfig()
       if (this.token) {
         try {
-          await $fetch('http://localhost:8000/api/auth/logout', {
+          await $fetch(`${apiBase}/auth/logout`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${this.token}`,
@@ -215,7 +202,6 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('auth_user')
       }
 
-      // Redirection après déconnexion (généralement '/' pour l'accueil)
       navigateTo('/')
     },
 

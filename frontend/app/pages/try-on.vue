@@ -136,7 +136,7 @@ async function savePD() {
   try {
     await useFetch('/api/profile', {
       method: 'PUT',
-      baseURL: 'http://localhost:8000',
+      baseURL: useRuntimeConfig().public.apiBase.replace('/api', ''),
       headers: { Authorization: `Bearer ${auth.token}` },
       body: { ecart_pupillaire: measuredPD.value },
     })
