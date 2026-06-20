@@ -17,7 +17,6 @@ class MontureSeeder extends Seeder
      */
     public function run(): void
     {
-
         $monturesData = [
             [
                 'nom' => 'Wayfarer Classic',
@@ -130,38 +129,45 @@ class MontureSeeder extends Seeder
         ];
 
         foreach($monturesData as $data){
-            $modele = Modele3D::create([
-                'id' => Str::uuid(),
-                'scale_offset' => $data['scale_offset']
-            ]);
+            // Créer ou récupérer la monture existante
+            $monture = Monture::where('nom', $data['nom'])->first();
 
-            $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
-            if(file_exists($pathGlb)){
-                $modele->addMedia($pathGlb)
-                       ->preservingOriginal()
-                       ->toMediaCollection('fichier3d');
+            if (!$monture) {
+                $modele = Modele3D::create([
+                    'id' => Str::uuid(),
+                    'scale_offset' => $data['scale_offset']
+                ]);
+
+                $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
+                if(file_exists($pathGlb)){
+                    $modele->addMedia($pathGlb)
+                           ->preservingOriginal()
+                           ->toMediaCollection('fichier3d');
+                }
+
+                $monture = Monture::create([
+                    'id' => Str::uuid(),
+                    'nom' => $data['nom'],
+                    'marque' => $data['marque'],
+                    'prix' => $data['prix'],
+                    'description' => $data['description'],
+                    'categorie' => $data['categorie'],
+                    'couleur' => $data['couleur'],
+                    'is_active' => $data['is_active'],
+                    'modele3d_id' => $modele->id,
+                ]);
             }
-            $this->command->info("GLB PATH: " . $pathGlb);
-            $this->command->info("EXISTS: " . (file_exists($pathGlb) ? 'YES' : 'NO'));
 
-            $monture = Monture::create([
-                'id' => Str::uuid(),
-                'nom' => $data['nom'],
-                'marque' => $data['marque'],
-                'prix' => $data['prix'],
-                'description' => $data['description'],
-                'categorie' => $data['categorie'],
-                'couleur' => $data['couleur'],
-                'is_active' => $data['is_active'],
-                'modele3d_id' => $modele->id,
-            ]);
-
-            $pathImg = database_path('seeders/files/montures/' . $data['image']);
-            if(file_exists($pathImg)){
-                $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
+            // Toujours re-copier l'image si absente du storage (filesystem éphémère Railway)
+            if ($monture->getMedia('image')->isEmpty()) {
+                $pathImg = database_path('seeders/files/montures/' . $data['image']);
+                if(file_exists($pathImg)){
+                    $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
+                    $this->command->info("Image restaurée : " . $data['image']);
+                }
             }
         }
 
-        $this->command->info('9 Montures ajoutées + 9 modèles 3D créés');
+        $this->command->info('Seeding terminé.');
     }
 }
