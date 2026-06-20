@@ -168,14 +168,18 @@ class MontureSeeder extends Seeder
 
                 $imgMedia = $monture->getFirstMedia('image');
                 $pathImg = database_path('seeders/files/montures/' . $data['image']);
+                $this->command->info("[DEBUG] " . $data['image'] . " | media=" . ($imgMedia ? $imgMedia->id : 'NULL') . " | src=" . (file_exists($pathImg) ? 'OK' : 'MISSING'));
+                if ($imgMedia) {
+                    $this->command->info("[DEBUG] dest=" . $imgMedia->getPath() . " | exists=" . (file_exists($imgMedia->getPath()) ? 'YES' : 'NO'));
+                }
                 if ($imgMedia && !file_exists($imgMedia->getPath()) && file_exists($pathImg)) {
-                    // Copie directe sans changer l'ID (préserve l'URL)
                     $dir = dirname($imgMedia->getPath());
                     if (!is_dir($dir)) mkdir($dir, 0755, true);
-                    copy($pathImg, $imgMedia->getPath());
-                    $this->command->info("Image restaurée : " . $data['image']);
+                    $copied = copy($pathImg, $imgMedia->getPath());
+                    $this->command->info("Image " . ($copied ? "restaurée" : "ERREUR COPY") . " : " . $data['image'] . " -> " . $imgMedia->getPath());
                 } elseif (!$imgMedia && file_exists($pathImg)) {
                     $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
+                    $this->command->info("Image créée : " . $data['image']);
                 }
             }
         }
