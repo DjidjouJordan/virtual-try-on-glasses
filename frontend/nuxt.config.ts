@@ -92,6 +92,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
+      navigateFallback: null,
       globPatterns: ['**/*.{js,css,html,svg,ico}'],
       globIgnores: ['**/*.{wasm,task,glb,obj}', '**/logo-dpglasses-light.png'],
       maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
