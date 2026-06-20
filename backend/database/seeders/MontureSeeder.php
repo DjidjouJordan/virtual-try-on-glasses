@@ -129,7 +129,6 @@ class MontureSeeder extends Seeder
         ];
 
         foreach($monturesData as $data){
-            // Créer ou récupérer la monture existante
             $monture = Monture::where('nom', $data['nom'])->first();
 
             if (!$monture) {
@@ -137,14 +136,6 @@ class MontureSeeder extends Seeder
                     'id' => Str::uuid(),
                     'scale_offset' => $data['scale_offset']
                 ]);
-
-                $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
-                if(file_exists($pathGlb)){
-                    $modele->addMedia($pathGlb)
-                           ->preservingOriginal()
-                           ->toMediaCollection('fichier3d');
-                }
-
                 $monture = Monture::create([
                     'id' => Str::uuid(),
                     'nom' => $data['nom'],
@@ -158,10 +149,25 @@ class MontureSeeder extends Seeder
                 ]);
             }
 
-            // Toujours re-copier l'image si absente du storage (filesystem éphémère Railway)
-            if ($monture->getMedia('image')->isEmpty()) {
+            $modele = $monture->modele3d;
+
+            // Vérifie si le fichier GLB existe physiquement (DB persist, filesystem éphémère)
+            $glbMedia = $modele->getFirstMedia('fichier3d');
+            if (!$glbMedia || !file_exists($glbMedia->getPath())) {
+                $modele->clearMediaCollection('fichier3d');
+                $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
+                if (file_exists($pathGlb)) {
+                    $modele->addMedia($pathGlb)->preservingOriginal()->toMediaCollection('fichier3d');
+                    $this->command->info("GLB restauré : " . $data['modele3d']);
+                }
+            }
+
+            // Vérifie si le fichier image existe physiquement (DB persist, filesystem éphémère)
+            $imgMedia = $monture->getFirstMedia('image');
+            if (!$imgMedia || !file_exists($imgMedia->getPath())) {
+                $monture->clearMediaCollection('image');
                 $pathImg = database_path('seeders/files/montures/' . $data['image']);
-                if(file_exists($pathImg)){
+                if (file_exists($pathImg)) {
                     $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
                     $this->command->info("Image restaurée : " . $data['image']);
                 }
