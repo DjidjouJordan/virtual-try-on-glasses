@@ -129,14 +129,14 @@ class MontureSeeder extends Seeder
         ];
 
         foreach($monturesData as $data){
-            $monture = Monture::where('nom', $data['nom'])->first();
+            $montures = Monture::where('nom', $data['nom'])->get();
 
-            if (!$monture) {
+            if ($montures->isEmpty()) {
                 $modele = Modele3D::create([
                     'id' => Str::uuid(),
                     'scale_offset' => $data['scale_offset']
                 ]);
-                $monture = Monture::create([
+                $newMonture = Monture::create([
                     'id' => Str::uuid(),
                     'nom' => $data['nom'],
                     'marque' => $data['marque'],
@@ -147,29 +147,31 @@ class MontureSeeder extends Seeder
                     'is_active' => $data['is_active'],
                     'modele3d_id' => $modele->id,
                 ]);
+                $montures = collect([$newMonture]);
             }
 
-            $modele = $monture->modele3d;
+            // Restaure les médias pour TOUTES les copies (doublons inclus)
+            foreach ($montures as $monture) {
+                $modele = $monture->modele3d;
+                if (!$modele) continue;
 
-            // Vérifie si le fichier GLB existe physiquement (DB persist, filesystem éphémère)
-            $glbMedia = $modele->getFirstMedia('fichier3d');
-            if (!$glbMedia || !file_exists($glbMedia->getPath())) {
-                $modele->clearMediaCollection('fichier3d');
-                $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
-                if (file_exists($pathGlb)) {
-                    $modele->addMedia($pathGlb)->preservingOriginal()->toMediaCollection('fichier3d');
-                    $this->command->info("GLB restauré : " . $data['modele3d']);
+                $glbMedia = $modele->getFirstMedia('fichier3d');
+                if (!$glbMedia || !file_exists($glbMedia->getPath())) {
+                    $modele->clearMediaCollection('fichier3d');
+                    $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
+                    if (file_exists($pathGlb)) {
+                        $modele->addMedia($pathGlb)->preservingOriginal()->toMediaCollection('fichier3d');
+                    }
                 }
-            }
 
-            // Vérifie si le fichier image existe physiquement (DB persist, filesystem éphémère)
-            $imgMedia = $monture->getFirstMedia('image');
-            if (!$imgMedia || !file_exists($imgMedia->getPath())) {
-                $monture->clearMediaCollection('image');
-                $pathImg = database_path('seeders/files/montures/' . $data['image']);
-                if (file_exists($pathImg)) {
-                    $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
-                    $this->command->info("Image restaurée : " . $data['image']);
+                $imgMedia = $monture->getFirstMedia('image');
+                if (!$imgMedia || !file_exists($imgMedia->getPath())) {
+                    $monture->clearMediaCollection('image');
+                    $pathImg = database_path('seeders/files/montures/' . $data['image']);
+                    if (file_exists($pathImg)) {
+                        $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
+                        $this->command->info("Image restaurée : " . $monture->id . ' / ' . $data['image']);
+                    }
                 }
             }
         }
