@@ -93,7 +93,9 @@ export default defineNuxtConfig({
     },
     workbox: {
       navigateFallback: '/',
-      globPatterns: ['**/*.{js,css,html,png,svg,ico,wasm,task,glb,obj}'],
+      globPatterns: ['**/*.{js,css,html,svg,ico}'],
+      globIgnores: ['**/*.{wasm,task,glb,obj}', '**/logo-dpglasses-light.png'],
+      maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       runtimeCaching: [
         {
           // API Laravel — NetworkFirst : essaie le réseau, sinon cache
