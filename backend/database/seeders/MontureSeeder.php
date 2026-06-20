@@ -150,28 +150,32 @@ class MontureSeeder extends Seeder
                 $montures = collect([$newMonture]);
             }
 
-            // Restaure les médias pour TOUTES les copies (doublons inclus)
+            // Restaure les fichiers physiques pour TOUTES les copies (doublons inclus)
             foreach ($montures as $monture) {
                 $modele = $monture->modele3d;
                 if (!$modele) continue;
 
                 $glbMedia = $modele->getFirstMedia('fichier3d');
-                if (!$glbMedia || !file_exists($glbMedia->getPath())) {
-                    $modele->clearMediaCollection('fichier3d');
-                    $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
-                    if (file_exists($pathGlb)) {
-                        $modele->addMedia($pathGlb)->preservingOriginal()->toMediaCollection('fichier3d');
-                    }
+                $pathGlb = database_path('seeders/files/modeles3d/' . $data['modele3d']);
+                if ($glbMedia && !file_exists($glbMedia->getPath()) && file_exists($pathGlb)) {
+                    // Copie directe sans changer l'ID (préserve l'URL)
+                    $dir = dirname($glbMedia->getPath());
+                    if (!is_dir($dir)) mkdir($dir, 0755, true);
+                    copy($pathGlb, $glbMedia->getPath());
+                } elseif (!$glbMedia && file_exists($pathGlb)) {
+                    $modele->addMedia($pathGlb)->preservingOriginal()->toMediaCollection('fichier3d');
                 }
 
                 $imgMedia = $monture->getFirstMedia('image');
-                if (!$imgMedia || !file_exists($imgMedia->getPath())) {
-                    $monture->clearMediaCollection('image');
-                    $pathImg = database_path('seeders/files/montures/' . $data['image']);
-                    if (file_exists($pathImg)) {
-                        $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
-                        $this->command->info("Image restaurée : " . $monture->id . ' / ' . $data['image']);
-                    }
+                $pathImg = database_path('seeders/files/montures/' . $data['image']);
+                if ($imgMedia && !file_exists($imgMedia->getPath()) && file_exists($pathImg)) {
+                    // Copie directe sans changer l'ID (préserve l'URL)
+                    $dir = dirname($imgMedia->getPath());
+                    if (!is_dir($dir)) mkdir($dir, 0755, true);
+                    copy($pathImg, $imgMedia->getPath());
+                    $this->command->info("Image restaurée : " . $data['image']);
+                } elseif (!$imgMedia && file_exists($pathImg)) {
+                    $monture->addMedia($pathImg)->preservingOriginal()->toMediaCollection('image');
                 }
             }
         }
